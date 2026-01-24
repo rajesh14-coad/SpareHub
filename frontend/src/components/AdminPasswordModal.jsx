@@ -8,7 +8,7 @@ const AdminPasswordModal = ({ isOpen, onClose, onConfirm }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (password === 'r@2614') {
+    if (password === '1600@2614') {
       onConfirm();
       onClose();
     } else {
