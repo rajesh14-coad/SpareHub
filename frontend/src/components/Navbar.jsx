@@ -34,7 +34,15 @@ const Navbar = () => {
 
   const unreadNotifications = notifications.filter(n => !n.read).length;
 
-  const hideFullNav = ['/', '/login', '/signup'].includes(location.pathname);
+  const hideFullNav = [
+    '/',
+    '/login',
+    '/signup',
+    '/admin',
+    '/role-selection',
+    '/admin-login',
+    '/shopkeeper-signup'
+  ].includes(location.pathname);
 
   if (hideFullNav) return null;
 
@@ -45,7 +53,7 @@ const Navbar = () => {
 
       {/* Desktop Navbar */}
       <nav className="hidden md:flex items-center justify-between px-10 py-4 glass fixed top-0 w-full z-50 border-b border-border-primary/50 shadow-sm">
-        <Link to="/selection" className="text-2xl font-bold text-brand-primary flex items-center gap-2 tracking-tight transition-opacity hover:opacity-80">
+        <Link to="/" className="text-2xl font-bold text-brand-primary flex items-center gap-2 tracking-tight transition-opacity hover:opacity-80">
           SpareHub
         </Link>
 

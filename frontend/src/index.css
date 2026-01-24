@@ -125,6 +125,23 @@
     animation: glow-pulse 0.4s ease-out forwards;
   }
 
+  /* Pulse on Hover Effect */
+  .pulse-on-hover:hover:not(:disabled) {
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+    }
+
+    50% {
+      box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+    }
+  }
+
   @keyframes glow-pulse {
     0% {
       opacity: 0;

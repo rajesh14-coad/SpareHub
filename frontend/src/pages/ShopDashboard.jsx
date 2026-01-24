@@ -25,10 +25,11 @@ import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import StatusPill from '../components/StatusPill';
 
 const ShopDashboard = () => {
   const navigate = useNavigate();
-  const { products: inventory, requests, notifications, deleteProduct, updateRequestStatus, updateProduct } = useAuth();
+  const { user, products: inventory, requests, notifications, deleteProduct, updateRequestStatus, updateProduct } = useAuth();
   const [activeTab, setActiveTab] = useState('requests');
   const [analyticsType, setAnalyticsType] = useState(null);
 
@@ -82,7 +83,9 @@ const ShopDashboard = () => {
 
       <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-4xl md:text-5xl font-bold text-text-primary tracking-tight mb-2">Shop</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-text-primary tracking-tight mb-2">
+            {user?.shopDetails?.name || user?.name || 'Shop'}
+          </h1>
           <p className="text-text-secondary text-sm font-bold opacity-60 flex items-center gap-2">
             <Activity size={14} className="text-emerald-500" /> System live
           </p>

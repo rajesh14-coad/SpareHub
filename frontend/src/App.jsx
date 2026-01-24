@@ -1,8 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
-import UserSelection from './pages/UserSelection';
+import RoleSelection from './pages/RoleSelection';
+import ShopkeeperSignup from './pages/ShopkeeperSignup';
 import ShopDashboard from './pages/ShopDashboard';
 import UploadPart from './pages/UploadPart';
 import CustomerHome from './pages/CustomerHome';
@@ -30,10 +31,17 @@ const AdminRoute = ({ children }) => {
 };
 
 const AppRoutes = () => {
-  const { user, isGuest } = useAuth();
-  const location = window.location;
+  const { user, isGuest, isShopkeeper, isAdmin } = useAuth();
+  const location = useLocation();
   const isAuthenticated = !!user || isGuest;
-  const isAdminPath = location.pathname === '/admin';
+  const isAdminPath = location.pathname.startsWith('/admin');
+
+  // Redirection logic for authenticated users at entry roots
+  const getHomePath = () => {
+    if (isAdmin) return '/admin';
+    if (isShopkeeper) return '/shop/dashboard';
+    return '/customer/home';
+  };
 
   return (
     <div className="min-h-screen bg-bg-primary text-text-primary font-sans transition-colors duration-300">
@@ -54,29 +62,34 @@ const AppRoutes = () => {
       />
       {!isAdminPath && <Navbar />}
       <Routes>
-        <Route path="/" element={isAuthenticated ? <Navigate to="/selection" replace /> : <Login />} />
+        {/* Entrance & Auth */}
+        <Route path="/" element={isAuthenticated ? <Navigate to={getHomePath()} replace /> : <RoleSelection />} />
+        <Route path="/role-selection" element={isAuthenticated ? <Navigate to={getHomePath()} replace /> : <RoleSelection />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to={getHomePath()} replace /> : <Login />} />
+        <Route path="/admin-login" element={isAuthenticated ? <Navigate to={getHomePath()} replace /> : <Login />} />
+        <Route path="/signup" element={isAuthenticated ? <Navigate to={getHomePath()} replace /> : <Signup />} />
+        <Route path="/shopkeeper-signup" element={isAuthenticated ? <Navigate to={getHomePath()} replace /> : <ShopkeeperSignup />} />
+
+        {/* Dashboards */}
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/selection" replace /> : <Login />} />
-        <Route path="/signup" element={isAuthenticated ? <Navigate to="/selection" replace /> : <Signup />} />
-        <Route path="/selection" element={!isAuthenticated ? <Navigate to="/login" replace /> : <UserSelection />} />
 
         {/* Shared Profile Page */}
-        <Route path="/profile" element={!isAuthenticated ? <Navigate to="/login" replace /> : <ProfilePage />} />
+        <Route path="/profile" element={!isAuthenticated ? <Navigate to="/" replace /> : <ProfilePage />} />
 
         {/* Messaging Routes */}
-        <Route path="/chats" element={!isAuthenticated ? <Navigate to="/login" replace /> : <ChatList />} />
-        <Route path="/chat/:id" element={!isAuthenticated ? <Navigate to="/login" replace /> : <ChatWindow />} />
+        <Route path="/chats" element={!isAuthenticated ? <Navigate to="/" replace /> : <ChatList />} />
+        <Route path="/chat/:id" element={!isAuthenticated ? <Navigate to="/" replace /> : <ChatWindow />} />
 
         {/* Shop & Inventory Routes */}
-        <Route path="/shop/dashboard" element={!isAuthenticated ? <Navigate to="/login" replace /> : <ShopDashboard />} />
-        <Route path="/shop/upload" element={!isAuthenticated ? <Navigate to="/login" replace /> : <UploadPart />} />
-        <Route path="/shop/inventory" element={!isAuthenticated ? <Navigate to="/login" replace /> : <ShopDashboard />} />
-        <Route path="/shop/profile/:id" element={!isAuthenticated ? <Navigate to="/login" replace /> : <ShopProfile />} />
+        <Route path="/shop/dashboard" element={!isAuthenticated ? <Navigate to="/" replace /> : <ShopDashboard />} />
+        <Route path="/shop/upload" element={!isAuthenticated ? <Navigate to="/" replace /> : <UploadPart />} />
+        <Route path="/shop/inventory" element={!isAuthenticated ? <Navigate to="/" replace /> : <ShopDashboard />} />
+        <Route path="/shop/profile/:id" element={!isAuthenticated ? <Navigate to="/" replace /> : <ShopProfile />} />
 
         {/* Customer Routes */}
-        <Route path="/customer/home" element={!isAuthenticated ? <Navigate to="/login" replace /> : <CustomerHome />} />
-        <Route path="/customer/product/:id" element={!isAuthenticated ? <Navigate to="/login" replace /> : <ProductDetails />} />
-        <Route path="/customer/requests" element={!isAuthenticated ? <Navigate to="/login" replace /> : <div className="pt-36 text-center text-text-secondary font-black italic tracking-widest text-2xl uppercase">Live Active Requests Hub</div>} />
+        <Route path="/customer/home" element={!isAuthenticated ? <Navigate to="/" replace /> : <CustomerHome />} />
+        <Route path="/customer/product/:id" element={!isAuthenticated ? <Navigate to="/" replace /> : <ProductDetails />} />
+        <Route path="/customer/requests" element={!isAuthenticated ? <Navigate to="/" replace /> : <div className="pt-36 text-center text-text-secondary font-black italic tracking-widest text-2xl uppercase">Live Active Requests Hub</div>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

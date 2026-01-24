@@ -16,18 +16,37 @@ import {
   Eye,
   EyeOff,
   Lock,
-  ArrowLeft
+  ArrowLeft,
+  Sparkles,
+  TrendingUp,
+  X,
+  FileText,
+  Download,
+  Calendar,
+  Package
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import SettingsModal from '../components/SettingsModal';
+import ThemeModal from '../components/ThemeModal';
 
 const ProfilePage = () => {
   const { user, logout, updateProfile } = useAuth();
-  const { currentTheme } = useTheme();
+  const { currentTheme, setCurrentTheme, themes } = useTheme();
   const navigate = useNavigate();
+
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const handleThemeChange = () => {
+    setShowThemeModal(true);
+  };
+
+  const activeThemeObj = themes.find(t => t.id === currentTheme) || themes[0];
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -179,15 +198,12 @@ const ProfilePage = () => {
             </div>
 
             <div className="flex gap-3">
-              {isEditing ? (
-                <button onClick={handleSave} className="px-8 py-3 bg-brand-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2 btn-press">
-                  Save Changes <Save size={16} />
-                </button>
-              ) : (
-                <button onClick={() => setIsEditing(true)} className="px-8 py-3 glass text-text-primary rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-bg-primary hover:text-white transition-all btn-press">
-                  Edit Profile <Settings size={16} />
-                </button>
-              )}
+              <button
+                onClick={() => setShowSettings(true)}
+                className="px-8 py-3 bg-brand-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2 btn-press glow-effect"
+              >
+                Account Settings <Settings size={16} />
+              </button>
             </div>
           </div>
         </div>
@@ -195,8 +211,17 @@ const ProfilePage = () => {
 
       {/* Settings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-20">
-        <ProfileCard icon={<Bell size={20} />} title="Notifications" subtitle="Bids & message alerts" color="text-indigo-600" />
-        <ProfileCard icon={<HardDrive size={20} />} title="History" subtitle="View your activity" color="text-emerald-500" />
+        <div onClick={handleThemeChange}>
+          <ProfileCard
+            icon={<Sparkles size={20} />}
+            title="Appearance"
+            subtitle={`Mode: ${activeThemeObj.name}`}
+            color="text-indigo-600"
+          />
+        </div>
+        <div onClick={() => setShowHistory(true)}>
+          <ProfileCard icon={<HardDrive size={20} />} title="History" subtitle="View your activity" color="text-emerald-500" />
+        </div>
 
         <div onClick={() => { logout(); navigate('/login'); toast.success("Logged out"); }} className="md:col-span-2 glass border border-border-primary/50 p-6 rounded-3xl flex items-center justify-between cursor-pointer group transition-all btn-press">
           <div className="flex items-center gap-4">
@@ -211,6 +236,11 @@ const ProfilePage = () => {
           <ChevronRight size={18} className="text-text-secondary group-hover:translate-x-1 transition-all" />
         </div>
       </div>
+
+      {/* Modals */}
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <ThemeModal isOpen={showThemeModal} onClose={() => setShowThemeModal(false)} />
+      <HistoryModal isOpen={showHistory} onClose={() => setShowHistory(false)} />
     </div>
   );
 };
@@ -225,5 +255,126 @@ const ProfileCard = ({ icon, title, subtitle, color }) => (
   </div>
 );
 
-export default ProfilePage;
+const HistoryModal = ({ isOpen, onClose }) => {
+  const { user, getOrderHistory } = useAuth();
+  const [filter, setFilter] = useState('Completed');
+  const role = user?.role?.toLowerCase() || 'customer';
 
+  // Assuming getOrderHistory returns all relevant orders
+  const allHistory = getOrderHistory(role);
+
+  // Filter logic (Mocking status for demo if not present in completedOrders)
+  // In real app, completedOrders would have 'cancelled' or 'returned' status too.
+  // For now, we assume getOrderHistory returns mostly completed orders, but we can filter if needed.
+  const history = allHistory.filter(item => {
+    if (filter === 'Completed') return item.status === 'completed';
+    // Mock other statuses for demo tabs, or if data supports it
+    return item.status === filter.toLowerCase();
+  });
+
+  const totalEarnings = role === 'shopkeeper'
+    ? allHistory.reduce((acc, curr) => acc + (curr.amount || 0), 0)
+    : 0;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 flex items-center justify-center z-[130] p-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/60 backdrop-blur-md" />
+          <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="w-full max-w-2xl glass-card relative z-[131] p-0 overflow-hidden flex flex-col max-h-[85vh] glow-effect">
+
+            {/* Header */}
+            <div className="p-6 border-b border-border-primary/10 flex justify-between items-center bg-bg-primary/30">
+              <div>
+                <h2 className="text-2xl font-bold text-text-primary tracking-tight">Order History</h2>
+                <p className="text-xs font-bold text-text-secondary opacity-60 uppercase tracking-wider">
+                  {role === 'shopkeeper' ? 'Sales & Earnings' : 'Purchases & Invoices'}
+                </p>
+              </div>
+              <button onClick={onClose} className="p-2 hover:bg-bg-primary/50 rounded-full text-text-secondary transition-all">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Shopkeeper Earnings Summary */}
+            {role === 'shopkeeper' && (
+              <div className="p-6 pb-0">
+                <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 p-6 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <p className="text-emerald-500 text-xs font-black uppercase tracking-widest mb-1">Total Earnings</p>
+                    <h3 className="text-3xl font-black text-text-primary">₹{totalEarnings.toLocaleString()}</h3>
+                  </div>
+                  <div className="w-12 h-12 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <TrendingUp size={24} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Filters */}
+            <div className="p-6 flex gap-2 overflow-x-auto no-scrollbar">
+              {['Completed', 'Cancelled', 'Returned'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setFilter(tab)}
+                  className={`px-4 py-2 rounded-full text-xs font-bold transition-all border ${filter === tab ? 'bg-brand-primary text-white border-brand-primary shadow-lg shadow-brand-primary/20' : 'glass border-border-primary/30 text-text-secondary hover:text-text-primary'}`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto p-6 pt-0 space-y-4">
+              {history.length > 0 ? (
+                history.map(item => (
+                  <div key={item.id} className="glass p-5 rounded-2xl border border-border-primary/10 hover:border-brand-primary/30 transition-all group">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-brand-primary/10 text-brand-primary rounded-xl flex items-center justify-center">
+                          <Package size={20} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-text-primary text-sm">{item.productName}</h4>
+                          <p className="text-[10px] font-bold text-text-secondary opacity-60 uppercase tracking-wider">
+                            {role === 'shopkeeper' ? `Customer: ${item.customerName}` : `Shop: ${item.shopName || 'AutoParts Syndicate'}`}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="bg-emerald-500/10 text-emerald-500 text-[10px] font-bold px-2 py-1 rounded-md border border-emerald-500/20 uppercase">
+                        {item.status}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-border-primary/10">
+                      <div className="flex items-center gap-4 text-xs font-bold text-text-secondary">
+                        <span className="flex items-center gap-1 opacity-70"><Calendar size={14} /> {item.date || new Date().toLocaleDateString()}</span>
+                        <span className="text-text-primary">₹{item.amount?.toLocaleString()}</span>
+                      </div>
+
+                      {role === 'customer' && (
+                        <button className="flex items-center gap-2 text-brand-primary text-[10px] font-black uppercase tracking-widest hover:underline">
+                          <Download size={14} /> Invoice
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 opacity-50">
+                  <div className="w-16 h-16 bg-bg-primary rounded-full flex items-center justify-center mx-auto mb-4 border border-border-primary/30">
+                    <FileText size={24} className="text-text-secondary" />
+                  </div>
+                  <p className="text-sm font-bold text-text-secondary">No history found</p>
+                </div>
+              )}
+            </div>
+
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default ProfilePage;
