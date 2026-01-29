@@ -119,7 +119,7 @@ const AdminDashboard = () => {
     { time: 'Wed', revenue: 7000 },
     { time: 'Thu', revenue: 12000 },
     { time: 'Fri', revenue: 9000 },
-    { time: 'Sat', revenue: 15000 },
+    { time: 'Sat', revenue: 15001 },
     { time: 'Sun', revenue: 11000 },
   ];
 

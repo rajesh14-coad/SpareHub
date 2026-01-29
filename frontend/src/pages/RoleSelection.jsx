@@ -54,8 +54,8 @@ const RoleSelection = () => {
           <div className="w-20 h-20 bg-brand-primary rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-brand-primary/30">
             <Store size={40} className="text-white" />
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-text-primary tracking-tight mb-4">
-            Welcome to PurzaSetu
+          <h1 className="text-5xl md:text-6xl font-black text-text-primary tracking-tight mb-4 leading-tight">
+            Welcome to <span className="brand-logo">PurzaSetu</span>
           </h1>
           <p className="text-lg text-text-secondary font-medium opacity-70">
             Choose how you'd like to continue

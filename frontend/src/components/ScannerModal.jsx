@@ -115,7 +115,9 @@ const ScannerModal = ({ isOpen, onClose }) => {
                 />
 
                 <div className="flex flex-col items-center gap-2">
-                  <p className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]">PurzaSetu Digital Scanner</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary opacity-60">
+                    <span className="brand-logo text-[12px]">PurzaSetu</span> Digital Scanner
+                  </p>
                   <p className="text-xs font-medium text-text-secondary opacity-60">Point your camera at a PurzaSetu shop QR code</p>
                 </div>
               </div>

@@ -13,11 +13,13 @@ import {
   Bell,
   Clock,
   Activity,
-  Zap
+  Zap,
+  Heart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useSearch } from '../context/SearchContext';
+import { useFavorites } from '../context/FavoritesContext';
 import { useChat } from '../context/ChatContext';
 import SettingsDrawer from './SettingsDrawer';
 import SearchOverlay from './SearchOverlay';
@@ -53,7 +55,7 @@ const Navbar = () => {
 
       {/* Desktop Navbar */}
       <nav className="hidden md:flex items-center justify-between px-10 py-4 glass fixed top-0 w-full z-50 border-b border-border-primary/50 shadow-sm">
-        <Link to="/" className="text-2xl font-semibold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent flex items-center gap-2 tracking-tight transition-all hover:opacity-90 hover:drop-shadow-[0_0_8px_rgba(99,102,241,0.5)] glow-effect">
+        <Link to="/" className="brand-logo text-3xl flex items-center gap-2 transition-all hover:opacity-90 hover:drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]">
           PurzaSetu
         </Link>
 
@@ -84,6 +86,7 @@ const Navbar = () => {
             ) : (
               <>
                 <NavLink to="/customer/home" icon={<Compass size={19} />} text="Explore Parts" />
+                {!isGuest && <NavLink to="/customer/favorites" icon={<Heart size={19} />} text="Favorites" />}
                 {!isGuest && <NavLink to="/customer/requests" icon={<PackagePlus size={19} />} text="Requests" />}
               </>
             )}
@@ -209,6 +212,7 @@ const Navbar = () => {
         ) : (
           <>
             <MobileNavLink to="/customer/home" icon={<Home size={24} />} active={location.pathname === '/customer/home'} />
+            {!isGuest && <MobileNavLink to="/customer/favorites" icon={<Heart size={24} />} active={location.pathname === '/customer/favorites'} />}
             <button onClick={() => setIsSearchOpen(true)} className="p-2 text-text-secondary btn-press">
               <SearchIcon size={24} />
             </button>

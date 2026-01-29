@@ -35,6 +35,7 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import StatusPill from '../components/StatusPill';
 import BusinessInsightsModal from '../components/BusinessInsightsModal';
+import MarketRequests from '../components/MarketRequests';
 
 const purzaLogoP = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9IiM0ZjQ2ZTUiLz48dGV4dCB4PSI1MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSdBcmlhbCxzYW5zLXNlcmlmJyBmb250LXNpemU9IjY1IiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UDwvdGV4dD48L3N2Zz4=";
 
@@ -157,13 +158,16 @@ const ShopDashboard = () => {
 
       {/* Tabs */}
       <div className="flex gap-6 mb-8 border-b border-border-primary/20 overflow-x-auto no-scrollbar">
+        <TabButton active={activeTab === 'market'} onClick={() => setActiveTab('market')} label="Market Requests" />
         <TabButton active={activeTab === 'requests'} onClick={() => setActiveTab('requests')} label="Requests" count={activeRequests.length} />
         <TabButton active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} label="Inventory" count={inventory.length} />
         <TabButton active={activeTab === 'qr'} onClick={() => setActiveTab('qr')} label="Shop QR" />
       </div>
 
       <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        {activeTab === 'requests' ? (
+        {activeTab === 'market' ? (
+          <MarketRequests user={user} />
+        ) : activeTab === 'requests' ? (
           <RequestsView requests={activeRequests} onAccept={(id) => { updateRequestStatus(id, 'accepted'); toast.success("Accepted"); navigate('/chats'); }} onDecline={(id) => { updateRequestStatus(id, 'declined'); toast.error("Declined"); }} inventory={inventory} />
         ) : activeTab === 'inventory' ? (
           <InventoryView inventory={inventory} onEdit={setEditProduct} onDelete={setDeleteConfirmId} />
@@ -616,12 +620,11 @@ const ShopQRView = ({ user }) => {
                     style={{
                       fontSize: '3.5rem',
                       fontWeight: '900',
-                      fontStyle: 'italic',
                       lineHeight: '1',
                       letterSpacing: '-0.05em',
                       margin: '0',
-                      color: '#4f46e5'
                     }}
+                    className="brand-logo"
                   >
                     PurzaSetu
                   </h1>
@@ -767,7 +770,9 @@ const ShopQRView = ({ user }) => {
             margin: '0',
             padding: '0',
             letterSpacing: '-2px'
-          }}>PurzaSetu</h1>
+          }}
+            className="brand-logo"
+          >PurzaSetu</h1>
           <p style={{
             fontSize: '14px',
             fontWeight: '800',

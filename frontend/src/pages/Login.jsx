@@ -73,7 +73,7 @@ const Login = () => {
             {role === 'Shopkeeper' ? 'Authorized Access' : 'Secure Entry'}
           </h2>
           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-            {role === 'Shopkeeper' ? 'Partner Portal' : 'Welcome to PurzaSetu'}
+            {role === 'Shopkeeper' ? 'Partner Portal' : <>Welcome to <span className="brand-logo">PurzaSetu</span></>}
           </h1>
         </div>
 

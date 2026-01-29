@@ -20,29 +20,42 @@ import {
   Navigation,
   Check,
   QrCode,
-  Eye
+  Eye,
+  MessageSquarePlus,
+  Car,
+  Bike,
+  Tractor,
+  Cpu,
+  Wrench,
+  PlusCircle
 } from 'lucide-react';
 import ScannerModal from '../components/ScannerModal';
 import { useNavigate } from 'react-router-dom';
 import Fuse from 'fuse.js';
 import { useAuth } from '../context/AuthContext';
 import { useSearch } from '../context/SearchContext';
+import { useFavorites } from '../context/FavoritesContext';
 import toast from 'react-hot-toast';
 import GuestRestrictionModal from '../components/GuestRestrictionModal';
 import { formatCount } from '../utils/analytics';
 import { calculateDistance, formatDistance } from '../utils/location';
 import StatusPill from '../components/StatusPill';
 import LocationModal from '../components/LocationModal';
+import RequestFormModal from '../components/RequestFormModal';
+import MyRequests from '../components/MyRequests';
+import FavoriteHeart from '../components/FavoriteHeart';
 
 const CustomerHome = () => {
   const navigate = useNavigate();
   const { products, requests, user, isGuest, users } = useAuth();
   const { query, setQuery } = useSearch();
+  const { toggleFavorite, isFavorite } = useFavorites();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [view, setView] = useState('inventory'); // inventory or requests
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
+  const [showRequestModal, setShowRequestModal] = useState(false);
   const [inventoryFilter, setInventoryFilter] = useState('All');
   const [location, setLocation] = useState(() => {
     const saved = localStorage.getItem('purzasetu-location');
@@ -54,12 +67,16 @@ const CustomerHome = () => {
 
   const categories = [
     { id: 'All', icon: <Package size={18} />, label: 'All' },
+    { id: 'Car', icon: <Car size={18} />, label: 'Car' },
+    { id: 'Bike', icon: <Bike size={18} />, label: 'Bike' },
+    { id: 'E-Bike', icon: <Zap size={18} />, label: 'E-Bike' },
+    { id: 'Tractor', icon: <Tractor size={18} />, label: 'Tractor' },
+    { id: 'Machine', icon: <Cpu size={18} />, label: 'Machine' },
     { id: 'Mobile', icon: <Smartphone size={18} />, label: 'Mobile' },
     { id: 'Tablets', icon: <Tablet size={18} />, label: 'Tablets' },
     { id: 'Laptops', icon: <Laptop size={18} />, label: 'Laptops' },
-    { id: 'Spare Parts', icon: <HardDrive size={18} />, label: 'Spares' },
-    { id: 'Accessories', icon: <Headphones size={18} />, label: 'Accessories' },
-    { id: 'Electronics', icon: <Settings size={18} />, label: 'Electronics' },
+    { id: 'Services', icon: <Wrench size={18} />, label: 'Services' },
+    { id: 'Other', icon: <PlusCircle size={18} />, label: 'Other' },
   ];
 
   const handleViewChange = (newView) => {
@@ -304,6 +321,13 @@ const CustomerHome = () => {
                     className="glass-card p-4 transition-all group cursor-pointer relative flex flex-col glow-effect"
                   >
                     <div className="aspect-[4/3] bg-bg-primary/50 rounded-2xl mb-4 overflow-hidden border border-border-primary/10 relative flex items-center justify-center">
+                      {/* Favorite Heart */}
+                      <FavoriteHeart
+                        productId={item.id}
+                        isFavorited={isFavorite(item.id)}
+                        onToggle={toggleFavorite}
+                      />
+
                       {item.image || (item.images && item.images[0]) ? (
                         <img
                           src={item.image || item.images[0]}
@@ -321,7 +345,7 @@ const CustomerHome = () => {
                           <Package size={48} strokeWidth={1} />
                         </div>
                       )}
-                      <div className="absolute top-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[9px] font-black text-brand-primary uppercase tracking-widest border border-white/10">
+                      <div className="absolute top-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[9px] font-black text-brand-primary uppercase tracking-widest border border-white/10">
                         {formatDistance(calculateDistance(coords?.lat, coords?.lng, shop?.lat || item.lat, shop?.lng || item.lng))}
                       </div>
                     </div>
@@ -374,65 +398,41 @@ const CustomerHome = () => {
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="space-y-4 max-w-3xl"
           >
-            {myRequests.map((req) => (
-              <motion.div
-                key={req.id}
-                whileTap={{ scale: 0.98 }}
-                className="glass-card p-5 flex flex-col gap-4 relative overflow-hidden group glow-effect"
-              >
-                <div className={`absolute top-0 left-0 w-1 h-full ${req.status === 'accepted' ? 'bg-blue-500' : req.status === 'declined' ? 'bg-red-500' : 'bg-amber-500'}`} />
-                <div className="flex-1 w-full pl-2">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <StatusPill status={req.status} />
-                    <span className="text-text-secondary text-[10px] font-bold flex items-center gap-1 opacity-60">
-                      <Clock size={12} /> {req.time}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-bold text-text-primary tracking-tight mb-1">{req.productName}</h3>
-
-                  {/* Booking Code Display */}
-                  {req.status === 'accepted' && req.bookingCode && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl"
-                    >
-                      <p className="text-[9px] font-bold text-blue-500 uppercase tracking-widest mb-1">Booking Code</p>
-                      <p className="text-2xl font-bold text-blue-500 tracking-wider">{req.bookingCode}</p>
-                      <p className="text-[10px] font-medium text-text-secondary mt-1 opacity-70">Show this code to the shopkeeper</p>
-                    </motion.div>
-                  )}
-                </div>
-                <div className="flex items-center justify-between gap-4 pt-3 border-t border-border-primary/10">
-                  <div>
-                    <p className="text-[10px] font-bold text-text-secondary opacity-50 mb-0.5 uppercase tracking-wider">Amount</p>
-                    <span className="text-xl font-bold text-brand-primary">₹{req.amount.toLocaleString()}</span>
-                  </div>
-                  {req.status === 'accepted' && (
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => navigate('/chats')}
-                      className="px-6 py-2.5 bg-brand-primary text-white rounded-xl font-bold text-xs shadow-md shadow-brand-primary/20 glow-effect"
-                    >
-                      Message Shop
-                    </motion.button>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-            {myRequests.length === 0 && (
-              <div className="text-center py-20 bg-bg-primary/30 rounded-[32px] border border-dashed border-border-primary">
-                <Package size={40} className="mx-auto mb-4 text-text-secondary opacity-20" />
-                <p className="font-bold text-text-secondary text-sm">No requests</p>
-              </div>
-            )}
+            <MyRequests user={user} />
           </motion.div>
         )}
       </AnimatePresence>
 
       <GuestRestrictionModal isOpen={showGuestModal} onClose={() => setShowGuestModal(false)} />
+      <RequestFormModal
+        isOpen={showRequestModal}
+        onClose={() => setShowRequestModal(false)}
+        user={user}
+        location={location}
+      />
+
+      {/* Floating Request Button */}
+      {!isGuest && (
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.1 }}
+          onClick={() => {
+            if (!location.state || !location.district) {
+              toast.error('Please set your location first');
+              setShowLocationModal(true);
+              return;
+            }
+            setShowRequestModal(true);
+          }}
+          className="fixed bottom-24 right-6 md:bottom-8 md:right-8 w-16 h-16 glass rounded-full shadow-[0_20px_50px_rgba(99,102,241,0.3),0_10px_30px_rgba(34,211,238,0.2)] flex items-center justify-center text-brand-primary border-white/20 z-[60] animate-breathing hover:shadow-brand-primary/40 transition-all group"
+          title="Request a Part"
+        >
+          <MessageSquarePlus size={28} className="group-hover:rotate-6 transition-transform" />
+        </motion.button>
+      )}
     </div>
   );
 };

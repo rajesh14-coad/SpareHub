@@ -193,7 +193,7 @@ const ShopkeeperSignup = () => {
             Shopkeeper Registration
           </h1>
           <p className="text-text-secondary font-medium opacity-70">
-            Join PurzaSetu and start selling your products
+            Join <span className="brand-logo">PurzaSetu</span> and start selling your products
           </p>
         </div>
 

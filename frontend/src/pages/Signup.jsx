@@ -36,7 +36,7 @@ const Signup = () => {
         <motion.div className="glass-card p-10 shadow-2xl glow-effect">
           <div className="text-center mb-10">
             <h1 className="text-4xl font-bold text-text-primary tracking-tight mb-2">
-              Join
+              Join <span className="brand-logo">PurzaSetu</span>
             </h1>
             <p className="text-text-secondary text-sm font-medium opacity-60">Create account</p>
           </div>

@@ -37,7 +37,9 @@ const Invoice = ({ order, onClose }) => {
             <div className="w-16 h-16 bg-brand-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-primary/30">
               <Package size={32} className="text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-text-primary tracking-tight mb-1">PurzaSetu</h1>
+            <h1 className="text-3xl font-bold text-text-primary tracking-tight mb-1">
+              <span className="brand-logo">PurzaSetu</span>
+            </h1>
             <p className="text-xs font-bold text-text-secondary uppercase tracking-widest opacity-60">Digital Invoice</p>
           </div>
 
@@ -128,7 +130,7 @@ const Invoice = ({ order, onClose }) => {
           {/* Footer */}
           <div className="text-center pt-6 border-t border-border-primary/20">
             <p className="text-xs font-medium text-text-secondary opacity-60">
-              Thank you for choosing PurzaSetu!
+              Thank you for choosing <span className="brand-logo">PurzaSetu</span>!
             </p>
             <p className="text-[10px] font-bold text-text-secondary uppercase tracking-widest opacity-40 mt-2">
               Booking Code: {order.bookingCode}

@@ -12,21 +12,15 @@ export const AuthProvider = ({ children }) => {
   });
   const [coords, setCoords] = useState(null);
 
-  // Global Mock Database
+  // Global Database - Production Ready
   const [products, setProducts] = useState(() => {
     const saved = localStorage.getItem('purzasetu-products');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, name: 'Toyota Innova Headlight', category: 'Spare Parts', type: 'New', price: 4500, compat: 'Innova 2018+', lat: 28.6139, lng: 77.2090, stock: 5, image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=2070&auto=format&fit=crop', viewCount: 1247, viewHistory: [] },
-      { id: 2, name: 'Honda City Front Bumper', category: 'Spare Parts', type: 'Used', price: 2800, compat: 'City 2014-2016', lat: 28.6500, lng: 77.2500, stock: 1, image: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=2070&auto=format&fit=crop', viewCount: 856, viewHistory: [] },
-      { id: 3, name: 'iPhone 13 Pro Screen', category: 'Mobile', type: 'New', price: 12000, compat: 'iPhone 13 Pro', lat: 28.4595, lng: 77.0266, stock: 8, image: 'https://images.unsplash.com/photo-1632733711679-5292d6863600?q=80&w=2070&auto=format&fit=crop', viewCount: 2341, viewHistory: [] },
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [requests, setRequests] = useState(() => {
     const saved = localStorage.getItem('purzasetu-requests');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, customerName: 'Rahul Sharma', productName: 'Mahindra Thar Front Grille', time: '14m ago', status: 'pending', amount: 4200, productId: 1 },
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [completedOrders, setCompletedOrders] = useState(() => {
@@ -41,22 +35,12 @@ export const AuthProvider = ({ children }) => {
 
   const [notifications, setNotifications] = useState(() => {
     const saved = localStorage.getItem('purzasetu-notifications');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, text: 'New Request for Toyota Headlight', time: '2m ago', type: 'request', read: false },
-      { id: 2, text: 'Signal received from Mahindra Thar inquiry', time: '15m ago', type: 'signal', read: true },
-      { id: 3, text: 'Price update: Innova Headlight is trending', time: '1h ago', type: 'system', read: false },
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem('purzasetu-all-users');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, name: 'Rahul Sharma', email: 'rahul@example.com', role: 'Customer', status: 'Active', joined: '2025-01-10' },
-      { id: 2, name: 'AutoParts Syndicate', email: 'shop@purzasetu.com', role: 'shopkeeper', status: 'Verified', isVerified: true, joined: '2025-01-05', lat: 28.6139, lng: 77.2090, shopVisits: 2840, visitHistory: Array.from({ length: 30 }, (_, i) => Date.now() - (i * 86400000)).flatMap(t => Array.from({ length: Math.floor(Math.random() * 50) + 10 }, () => t)) },
-      { id: 3, name: 'Priya Verma', email: 'priya@example.com', role: 'Customer', status: 'Active', joined: '2025-01-15' },
-      { id: 4, name: 'Tech Solutions', email: 'tech@shop.com', role: 'shopkeeper', status: 'Pending', isVerified: false, joined: '2025-01-20', lat: 28.4595, lng: 77.0266, shopVisits: 156, visitHistory: [] },
-      { id: 5, name: 'Admin Master', email: 'admin@purzasetu.com', role: 'Admin', status: 'Active', joined: '2024-12-01' },
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [pendingShopkeepers, setPendingShopkeepers] = useState(() => {
@@ -66,9 +50,7 @@ export const AuthProvider = ({ children }) => {
 
   const [reports, setReports] = useState(() => {
     const saved = localStorage.getItem('purzasetu-reports');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, productId: 1, productName: 'Toyota Innova Headlight', reason: 'Incorrect Price', reporter: 'Alex Murphy', time: '1h ago' },
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
@@ -137,7 +119,7 @@ export const AuthProvider = ({ children }) => {
           // Use a default coordinate for demo purposes if denied
           setCoords({ lat: 28.6139, lng: 77.2090 });
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 5001, maximumAge: 0 }
       );
     }
   }, []);
@@ -398,8 +380,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const sendEmailNotification = (email, subject, body) => {
-    console.log(`[EMAIL SENT] To: ${email} | Subject: ${subject} | Body: ${body}`);
-    // Placeholder for SMTP integration
+    // Placeholder for SMTP integration - implement in production
   };
 
   const approveShopkeeper = (id) => {

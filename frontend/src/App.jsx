@@ -15,10 +15,13 @@ import ChatList from './pages/ChatList';
 import ChatWindow from './pages/ChatWindow';
 import ShopProfile from './pages/ShopProfile';
 import AdminDashboard from './pages/AdminDashboard';
+import FavoritesPage from './pages/FavoritesPage';
+import NotFound from './pages/NotFound';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SearchProvider } from './context/SearchContext';
 import { ChatProvider } from './context/ChatContext';
+import { FavoritesProvider } from './context/FavoritesContext';
 import toast from 'react-hot-toast';
 
 const AdminRoute = ({ children }) => {
@@ -88,11 +91,12 @@ const AppRoutes = () => {
 
         {/* Customer Routes */}
         <Route path="/customer/home" element={!isAuthenticated ? <Navigate to="/" replace /> : <CustomerHome />} />
+        <Route path="/customer/favorites" element={!isAuthenticated ? <Navigate to="/" replace /> : <FavoritesPage />} />
         <Route path="/customer/product/:id" element={!isAuthenticated ? <Navigate to="/" replace /> : <ProductDetails />} />
         <Route path="/customer/requests" element={!isAuthenticated ? <Navigate to="/" replace /> : <div className="pt-36 text-center text-text-secondary font-black italic tracking-widest text-2xl uppercase">Live Active Requests Hub</div>} />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* 404 Fallback */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
   );
@@ -102,13 +106,15 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <SearchProvider>
-          <ChatProvider>
-            <Router>
-              <AppRoutes />
-            </Router>
-          </ChatProvider>
-        </SearchProvider>
+        <FavoritesProvider>
+          <SearchProvider>
+            <ChatProvider>
+              <Router>
+                <AppRoutes />
+              </Router>
+            </ChatProvider>
+          </SearchProvider>
+        </FavoritesProvider>
       </AuthProvider>
     </ThemeProvider>
   );
