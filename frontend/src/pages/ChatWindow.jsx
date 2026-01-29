@@ -117,7 +117,7 @@ const ChatWindow = () => {
         <button onClick={() => navigate(`/customer/product/${conversation.product.id}`)} className="text-[9px] font-bold text-brand-primary uppercase tracking-widest hover:underline">View</button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 no-scrollbar bg-bg-primary">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 no-scrollbar bg-bg-primary pb-24 md:pb-8">
         {conversation.messages.map((msg, idx) => {
           const isOwn = msg.sender === 'customer';
           return (
@@ -170,7 +170,7 @@ const ChatWindow = () => {
         <QuickAction onClick={() => toast("Confirmed")} icon={<Handshake size={12} />} text="Order" primary />
       </div>
 
-      <footer className="p-4 md:px-8 md:pb-8 md:pt-4 glass border-t border-border-primary/30 z-20">
+      <footer className="p-4 md:px-8 md:pb-8 md:pt-4 glass border-t border-border-primary/30 z-20 pb-[80px] md:pb-8">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
           <motion.button whileTap={{ scale: 0.95 }} className="p-3 hover:bg-bg-primary rounded-full text-brand-primary transition-all bg-bg-primary/50 border border-border-primary/30"><Paperclip size={20} /></motion.button>
           <div className="flex-1 relative group bg-bg-primary rounded-2xl border border-border-primary/50 shadow-sm glow-effect">

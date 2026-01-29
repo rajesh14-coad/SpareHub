@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
@@ -23,7 +23,9 @@ import {
   FileText,
   Download,
   Calendar,
-  Package
+  Package,
+  Star,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -41,6 +43,15 @@ const ProfilePage = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const isShopkeeper = user?.role === 'shopkeeper';
+
+  useEffect(() => {
+    if (isShopkeeper) {
+      navigate(`/shop/profile/${user?.id}`, { replace: true });
+    }
+  }, [isShopkeeper, user, navigate]);
+
+  if (isShopkeeper) return null;
 
   const handleThemeChange = () => {
     setShowThemeModal(true);
@@ -78,7 +89,7 @@ const ProfilePage = () => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validation
     if (formData.phone && !/^\d{10}$/.test(formData.phone)) {
       toast.error("Mobile number must be 10 digits");
@@ -101,16 +112,21 @@ const ProfilePage = () => {
       }
     }
 
+    const toastId = toast.loading("Saving changes...");
     try {
       const { newPassword, confirmPassword, ...profileData } = formData;
       const updates = formData.newPassword ? { ...profileData, password: newPassword } : profileData;
 
-      updateProfile(updates);
-      setIsEditing(false);
-      setFormData(prev => ({ ...prev, newPassword: '', confirmPassword: '' }));
-      toast.success("Profile saved");
+      const res = await updateProfile(updates);
+      if (res.success) {
+        setIsEditing(false);
+        setFormData(prev => ({ ...prev, newPassword: '', confirmPassword: '' }));
+        toast.success("Profile secured permanently", { id: toastId });
+      } else {
+        toast.error("Sync failed. Check network.", { id: toastId });
+      }
     } catch (err) {
-      toast.error("Failed to save profile");
+      toast.error("Critical Save Error", { id: toastId });
     }
   };
 
@@ -256,8 +272,11 @@ const ProfileCard = ({ icon, title, subtitle, color }) => (
 );
 
 const HistoryModal = ({ isOpen, onClose }) => {
-  const { user, getOrderHistory } = useAuth();
+  const { user, getOrderHistory, addRating, ratings } = useAuth();
   const [filter, setFilter] = useState('Completed');
+  const [ratingOrder, setRatingOrder] = useState(null);
+  const [ratingValue, setRatingValue] = useState(5);
+  const [ratingReview, setRatingReview] = useState('');
   const role = user?.role?.toLowerCase() || 'customer';
 
   // Assuming getOrderHistory returns all relevant orders
@@ -275,6 +294,18 @@ const HistoryModal = ({ isOpen, onClose }) => {
   const totalEarnings = role === 'shopkeeper'
     ? allHistory.reduce((acc, curr) => acc + (curr.amount || 0), 0)
     : 0;
+
+  const handleSubmitRating = (orderId) => {
+    addRating(orderId, ratingValue, ratingReview);
+    setRatingOrder(null);
+    setRatingValue(5);
+    setRatingReview('');
+    toast.success('Rating submitted!');
+  };
+
+  const hasRated = (orderId) => {
+    return ratings?.some(r => r.orderId === orderId);
+  };
 
   return (
     <AnimatePresence>
@@ -346,18 +377,79 @@ const HistoryModal = ({ isOpen, onClose }) => {
                       </span>
                     </div>
 
+                    {/* Enhanced Details: Total Price, Date, Condition */}
                     <div className="flex items-center justify-between pt-4 border-t border-border-primary/10">
                       <div className="flex items-center gap-4 text-xs font-bold text-text-secondary">
-                        <span className="flex items-center gap-1 opacity-70"><Calendar size={14} /> {item.date || new Date().toLocaleDateString()}</span>
+                        <span className="flex items-center gap-1 opacity-70"><Calendar size={14} /> {item.completedAt ? new Date(item.completedAt).toLocaleDateString() : new Date().toLocaleDateString()}</span>
                         <span className="text-text-primary">₹{item.amount?.toLocaleString()}</span>
+                        {item.condition && <span className="bg-bg-primary px-2 py-1 rounded text-[10px]">{item.condition}</span>}
                       </div>
 
                       {role === 'customer' && (
-                        <button className="flex items-center gap-2 text-brand-primary text-[10px] font-black uppercase tracking-widest hover:underline">
-                          <Download size={14} /> Invoice
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {!hasRated(item.id) && item.status === 'completed' ? (
+                            <button
+                              onClick={() => setRatingOrder(item.id)}
+                              className="flex items-center gap-2 text-brand-primary text-[10px] font-black uppercase tracking-widest hover:underline"
+                            >
+                              <Star size={14} /> Rate
+                            </button>
+                          ) : hasRated(item.id) ? (
+                            <span className="text-emerald-500 text-[10px] font-bold flex items-center gap-1">
+                              <CheckCircle size={12} /> Rated
+                            </span>
+                          ) : null}
+                          <button className="flex items-center gap-2 text-brand-primary text-[10px] font-black uppercase tracking-widest hover:underline">
+                            <Download size={14} /> Invoice
+                          </button>
+                        </div>
                       )}
                     </div>
+
+                    {/* Rating Widget */}
+                    {ratingOrder === item.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="mt-4 pt-4 border-t border-border-primary/10 space-y-3"
+                      >
+                        <div className="flex items-center gap-2">
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <button
+                              key={star}
+                              onClick={() => setRatingValue(star)}
+                              className="transition-all"
+                            >
+                              <Star
+                                size={24}
+                                className={star <= ratingValue ? 'text-yellow-500 fill-yellow-500' : 'text-text-secondary'}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                        <textarea
+                          value={ratingReview}
+                          onChange={(e) => setRatingReview(e.target.value)}
+                          placeholder="Write your review (optional)"
+                          className="w-full bg-bg-primary/50 border border-border-primary rounded-xl p-3 text-sm outline-none focus:border-brand-primary/50 resize-none"
+                          rows={3}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleSubmitRating(item.id)}
+                            className="px-4 py-2 bg-brand-primary text-white rounded-lg text-xs font-bold"
+                          >
+                            Submit Rating
+                          </button>
+                          <button
+                            onClick={() => setRatingOrder(null)}
+                            className="px-4 py-2 bg-bg-primary border border-border-primary text-text-secondary rounded-lg text-xs font-bold"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
                 ))
               ) : (

@@ -13,22 +13,23 @@ app.use(cors());
 app.use(express.json());
 
 // Database Connection
-mongoose.connect("mongodb://localhost:27017/sparehub", {
+mongoose.connect("mongodb://localhost:27017/purzasetu", {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.log('❌ MongoDB Connection Error:', err));
 
-// Routes (Placeholder)
-app.get('/', (req, res) => {
-  res.send('API is running...');
-});
+// Routes
+const authRoute = require('./routes/auth');
+const productRoute = require('./routes/products');
 
-// Import Models
-const User = require('./models/User');
-const Product = require('./models/Product');
-const Request = require('./models/Request');
+app.use('/api/auth', authRoute);
+app.use('/api/products', productRoute);
+
+app.get('/', (req, res) => {
+  res.send('PurzaSetu API is running...');
+});
 
 // Start Server
 app.listen(PORT, () => {

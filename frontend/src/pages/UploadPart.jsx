@@ -7,11 +7,9 @@ import {
   Upload,
   Tag,
   CheckCircle2,
-  IndianRupee,
+  ListPlus,
   Image as ImageIcon,
-  Info,
   Loader2,
-  Plus,
   ArrowLeft,
   X,
   Smartphone,
@@ -20,15 +18,21 @@ import {
   Headphones,
   HardDrive,
   Settings,
-  ChevronDown
+  ChevronDown,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const UploadPart = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const { user, addProduct } = useAuth();
   const [step, setStep] = useState(1);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showCustomCategory, setShowCustomCategory] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -36,9 +40,9 @@ const UploadPart = () => {
     description: '',
     category: 'Spare Parts',
     customCategory: '',
-    condition: 'new',
+    condition: 'New',
     price: '',
-    image: null,
+    images: [], // Array of Cloudinary URLs
     stock: 1
   });
 
@@ -60,37 +64,131 @@ const UploadPart = () => {
       if (showCustomCategory) return formData.customCategory.length > 2;
       return !!formData.category;
     }
-    if (step === 3) return formData.price > 0 && formData.image;
+    if (step === 3) return formData.price > 0 && formData.images.length > 0;
     return true;
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, image: reader.result });
-      };
-      reader.readAsDataURL(file);
+  const uploadToCloudinary = async (file) => {
+    // Placeholder for actual Cloudinary Logic
+    // In production, use process.env.VITE_CLOUDINARY_CLOUD_NAME
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'demo';
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'unsigned_preset';
+
+    const data = new FormData();
+    data.append('file', file);
+    data.append('upload_preset', uploadPreset);
+    data.append('cloud_name', cloudName);
+
+    try {
+      // Simulating Upload Progress
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 10;
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+        if (progress >= 90) clearInterval(interval);
+      }, 100);
+
+      // Replace with actual fetch call:
+      // const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: data });
+      // const fileData = await res.json();
+
+      // MOCK RESPONSE for Demo (since we don't have user's keys yet)
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      clearInterval(interval);
+      setUploadProgress(100);
+
+      // Mock URL (Replace with fileData.secure_url)
+      const mockUrl = URL.createObjectURL(file);
+
+      return mockUrl;
+    } catch (error) {
+      console.error("Upload Error:", error);
+      toast.error("Image upload failed");
+      return null;
+    } finally {
+      setUploadProgress(0);
     }
   };
 
-  const removeImage = () => {
-    setFormData({ ...formData, image: null });
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    if (formData.images.length + files.length > 5) {
+      toast.error("Maximum 5 photos allowed");
+      return;
+    }
+
+    setIsUploading(true);
+
+    // Process files as Base64 for persistence (Mocking Cloudinary upload)
+    const processedImages = [];
+    for (const file of files) {
+      const reader = new FileReader();
+      const base64Promise = new Promise((resolve) => {
+        reader.onloadend = () => resolve(reader.result);
+      });
+      reader.readAsDataURL(file);
+      const base64 = await base64Promise;
+      processedImages.push(base64);
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...processedImages]
+    }));
+
+    // Simulate database delay
+    for (let i = 0; i < files.length; i++) {
+      setUploadProgress(((i + 1) / files.length) * 100);
+      await new Promise(resolve => setTimeout(resolve, 400));
+    }
+
+    setIsUploading(false);
+    setUploadProgress(0);
+    toast.success("Images staged for sync");
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleSubmit = (e) => {
+  const removeImage = (index) => {
+    const newImages = formData.images.filter((_, i) => i !== index);
+    setFormData({ ...formData, images: newImages });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsUploading(true);
 
-    setTimeout(() => {
+    try {
+      const primaryImage = formData.images[0] || '';
+      const newProduct = {
+        id: Date.now(),
+        shopId: user?.id,
+        owner: user?.name,
+        name: formData.name,
+        description: formData.description,
+        category: showCustomCategory ? formData.customCategory : formData.category,
+        type: formData.condition, // condition maps to 'type' in current schema
+        price: parseFloat(formData.price),
+        image: primaryImage, // Primary thumbnail for list views
+        images: formData.images, // Full gallery
+        stock: formData.stock,
+        joined: new Date().toISOString().split('T')[0]
+      };
+
+      // In a real app, this would be an API call
+      // For now, we use the local state management in AuthContext
+      await addProduct(newProduct);
+
       setIsUploading(false);
       setStep(4);
-      setTimeout(() => {
-        navigate('/shop/dashboard');
-      }, 1500);
-    }, 1200);
+      toast.success("Product Uploaded Successfully!");
+      setTimeout(() => navigate('/shop/dashboard'), 2000);
+    } catch (error) {
+      console.error("Upload Error:", error);
+      toast.error("Failed to post item");
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -205,13 +303,13 @@ const UploadPart = () => {
               )}
 
               <div className="flex p-1 bg-bg-primary/50 rounded-xl border border-border-primary/50">
-                {['new', 'used'].map(c => (
+                {['New', 'Used'].map(c => (
                   <button
                     key={c}
                     onClick={() => setFormData({ ...formData, condition: c })}
                     className={`flex-1 py-2.5 rounded-lg font-bold text-xs transition-all ${formData.condition === c ? 'bg-white text-brand-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
                   >
-                    {c === 'new' ? 'New' : 'Used'}
+                    {c}
                   </button>
                 ))}
               </div>
@@ -241,24 +339,63 @@ const UploadPart = () => {
                 <h2 className="text-xl font-bold text-text-primary tracking-tight">Price & Photos</h2>
               </div>
 
-              <div className="relative group p-12 border border-dashed border-border-primary/50 rounded-2xl bg-bg-primary/30 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-brand-primary/5 transition-all"
-                onClick={() => !formData.image && fileInputRef.current.click()}
-              >
-                <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+              {/* Multi-Image Upload Area */}
+              <div className="space-y-4">
+                <div
+                  className={`relative p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${isUploading ? 'bg-bg-primary/50 border-brand-primary' : 'bg-bg-primary/30 border-border-primary/50 hover:bg-brand-primary/5'}`}
+                  onClick={() => !isUploading && formData.images.length < 5 && fileInputRef.current.click()}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    disabled={isUploading}
+                  />
 
-                {formData.image ? (
-                  <div className="relative w-full aspect-video rounded-xl overflow-hidden group">
-                    <img src={formData.image} className="w-full h-full object-cover" />
-                    <button onClick={removeImage} className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg shadow-lg">
-                      <X size={16} />
-                    </button>
+                  {isUploading ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="animate-spin text-brand-primary" size={32} />
+                      <div className="w-48 h-2 bg-bg-primary rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full bg-brand-primary"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-brand-primary">Uploading... {uploadProgress}%</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="p-3 bg-white rounded-full text-brand-primary shadow-sm"><Upload size={24} /></div>
+                      <p className="text-sm font-semibold text-text-primary">Click to upload photos ({formData.images.length}/5)</p>
+                      <p className="text-xs text-text-secondary opacity-60">PNG, JPG up to 5MB</p>
+                    </>
+                  )}
+                </div>
+
+                {/* Gallery Slider */}
+                {formData.images.length > 0 && (
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {formData.images.map((img, idx) => (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden border border-border-primary/50 group"
+                      >
+                        <img src={img} className="w-full h-full object-cover" alt={`Upload ${idx}`} loading="lazy" />
+                        <button
+                          onClick={() => removeImage(idx)}
+                          className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                        >
+                          <Trash2 className="text-white hover:text-red-400 transition-colors" size={20} />
+                        </button>
+                      </motion.div>
+                    ))}
                   </div>
-                ) : (
-                  <>
-                    <div className="p-3 bg-white rounded-full text-brand-primary shadow-sm"><Upload size={24} /></div>
-                    <p className="text-sm font-semibold text-text-primary">Click to upload photo</p>
-                    <p className="text-xs text-text-secondary opacity-60">PNG, JPG up to 5MB</p>
-                  </>
                 )}
               </div>
 
@@ -280,7 +417,7 @@ const UploadPart = () => {
             <button
               onClick={handleSubmit}
               disabled={!isStepValid() || isUploading}
-              className="w-full py-4 bg-brand-primary text-white rounded-2xl font-bold shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2 btn-press"
+              className="w-full py-4 bg-brand-primary text-white rounded-2xl font-bold shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2 btn-press glow-effect"
             >
               {isUploading ? <Loader2 size={20} className="animate-spin" /> : "Post Item"}
             </button>

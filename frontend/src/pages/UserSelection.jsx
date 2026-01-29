@@ -35,7 +35,7 @@ const UserSelection = () => {
         <h1 className="text-4xl md:text-5xl font-bold text-text-primary tracking-tight mb-2">
           Choose Your Role
         </h1>
-        <p className="text-text-secondary text-sm font-medium opacity-60">Select how you want to use SpareHub</p>
+        <p className="text-text-secondary text-sm font-medium opacity-60">Select how you want to use PurzaSetu</p>
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl relative z-10">

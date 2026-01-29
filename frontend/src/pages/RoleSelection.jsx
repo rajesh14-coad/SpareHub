@@ -12,7 +12,7 @@ const RoleSelection = () => {
   const [showAdminModal, setShowAdminModal] = useState(false);
 
   const handleAdminSuccess = () => {
-    login('admin@sparehub.com', 'admin', 'Admin');
+    login('admin@purzasetu.com', 'admin', 'Admin');
     navigate('/admin'); // Or wherever admin goes
     toast.success("Welcome, System Overseer");
   };
@@ -55,7 +55,7 @@ const RoleSelection = () => {
             <Store size={40} className="text-white" />
           </div>
           <h1 className="text-5xl md:text-6xl font-bold text-text-primary tracking-tight mb-4">
-            Welcome to SpareHub
+            Welcome to PurzaSetu
           </h1>
           <p className="text-lg text-text-secondary font-medium opacity-70">
             Choose how you'd like to continue

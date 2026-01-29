@@ -4,7 +4,7 @@ const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState(() => {
-    return localStorage.getItem('sparehub-theme') || 'dark';
+    return localStorage.getItem('purzasetu-theme') || 'dark';
   });
 
   const themes = [
@@ -19,7 +19,7 @@ export const ThemeProvider = ({ children }) => {
   ];
 
   useEffect(() => {
-    localStorage.setItem('sparehub-theme', currentTheme);
+    localStorage.setItem('purzasetu-theme', currentTheme);
     document.documentElement.setAttribute('data-theme', currentTheme);
   }, [currentTheme]);
 

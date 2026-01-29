@@ -53,8 +53,8 @@ const Navbar = () => {
 
       {/* Desktop Navbar */}
       <nav className="hidden md:flex items-center justify-between px-10 py-4 glass fixed top-0 w-full z-50 border-b border-border-primary/50 shadow-sm">
-        <Link to="/" className="text-2xl font-bold text-brand-primary flex items-center gap-2 tracking-tight transition-opacity hover:opacity-80">
-          SpareHub
+        <Link to="/" className="text-2xl font-semibold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent flex items-center gap-2 tracking-tight transition-all hover:opacity-90 hover:drop-shadow-[0_0_8px_rgba(99,102,241,0.5)] glow-effect">
+          PurzaSetu
         </Link>
 
         {/* Global Search Interface */}
@@ -128,21 +128,47 @@ const Navbar = () => {
                           <Activity size={14} className="text-brand-primary" />
                         </div>
                         <div className="max-h-80 overflow-y-auto no-scrollbar">
-                          {notifications.length > 0 ? notifications.map(n => (
-                            <div key={n.id} className="p-4 hover:bg-bg-primary/50 transition-all cursor-pointer border-b border-border-primary/30 last:border-0">
-                              <div className="flex gap-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${n.type === 'request' ? 'bg-emerald-500/10 text-emerald-500' : n.type === 'signal' ? 'bg-brand-primary/10 text-brand-primary' : 'bg-orange-500/10 text-orange-500'}`}>
-                                  {n.type === 'request' ? <PlusCircle size={14} /> : n.type === 'signal' ? <Zap size={14} /> : <Activity size={14} />}
-                                </div>
-                                <div className="flex-1">
-                                  <p className="text-xs text-text-primary leading-tight mb-1">{n.text}</p>
-                                  <span className="text-[10px] text-text-secondary flex items-center gap-1 opacity-70">
-                                    <Clock size={10} /> {n.time}
-                                  </span>
+                          {notifications.length > 0 ? notifications.map(n => {
+                            // Determine navigation target based on notification content
+                            const handleNotificationClick = () => {
+                              setIsNotificationsOpen(false);
+
+                              if (n.text.toLowerCase().includes('request') || n.type === 'request') {
+                                // Navigate to Inventory Requests tab
+                                navigate('/shop/dashboard');
+                                // Note: In a real app, you'd also set the active tab to 'requests'
+                              } else if (n.text.toLowerCase().includes('order') || n.text.toLowerCase().includes('completed')) {
+                                // Navigate to History page
+                                navigate('/profile');
+                                // Note: In a real app, you'd also trigger the history modal to open
+                              } else if (n.text.toLowerCase().includes('message')) {
+                                navigate('/chats');
+                              } else {
+                                // Default: navigate to profile
+                                navigate('/profile');
+                              }
+                            };
+
+                            return (
+                              <div
+                                key={n.id}
+                                onClick={handleNotificationClick}
+                                className="p-4 hover:bg-bg-primary/50 transition-all cursor-pointer border-b border-border-primary/30 last:border-0 active:scale-[0.98]"
+                              >
+                                <div className="flex gap-3">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${n.type === 'request' ? 'bg-emerald-500/10 text-emerald-500' : n.type === 'signal' ? 'bg-brand-primary/10 text-brand-primary' : 'bg-orange-500/10 text-orange-500'}`}>
+                                    {n.type === 'request' ? <PlusCircle size={14} /> : n.type === 'signal' ? <Zap size={14} /> : <Activity size={14} />}
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-xs text-text-primary leading-tight mb-1">{n.text}</p>
+                                    <span className="text-[10px] text-text-secondary flex items-center gap-1 opacity-70">
+                                      <Clock size={10} /> {n.time}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          )) : (
+                            );
+                          }) : (
                             <div className="p-10 text-center text-text-secondary text-xs">
                               No new notifications
                             </div>
@@ -155,7 +181,7 @@ const Navbar = () => {
               </div>
             )}
 
-            <Link to="/profile" className="flex items-center gap-2 p-3 rounded-2xl hover:bg-bg-primary transition-all text-text-secondary hover:text-text-primary btn-press">
+            <Link to={isShopkeeper ? `/shop/profile/${user?.id}` : "/profile"} className="flex items-center gap-2 p-3 rounded-2xl hover:bg-bg-primary transition-all text-text-secondary hover:text-text-primary btn-press">
               <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
                 <User size={18} />
               </div>
@@ -178,7 +204,7 @@ const Navbar = () => {
             <MobileNavLink to="/shop/dashboard" icon={<LayoutDashboard size={24} />} active={location.pathname === '/shop/dashboard'} />
             <MobileNavLink to="/shop/upload" icon={<PlusCircle size={24} />} active={location.pathname === '/shop/upload'} />
             <MobileNavLink to="/chats" icon={<MessageSquare size={24} />} active={location.pathname.startsWith('/chat')} badge={totalUnreadCount} />
-            <MobileNavLink to="/profile" icon={<User size={24} />} active={location.pathname === '/profile'} />
+            <MobileNavLink to={isShopkeeper ? `/shop/profile/${user?.id}` : "/profile"} icon={<User size={24} />} active={location.pathname === (isShopkeeper ? `/shop/profile/${user?.id}` : "/profile")} />
           </>
         ) : (
           <>
@@ -187,7 +213,7 @@ const Navbar = () => {
               <SearchIcon size={24} />
             </button>
             <MobileNavLink to="/chats" icon={<MessageSquare size={24} />} active={location.pathname.startsWith('/chat')} badge={totalUnreadCount} />
-            <MobileNavLink to="/profile" icon={<User size={24} />} active={location.pathname === '/profile'} />
+            <MobileNavLink to={isShopkeeper ? `/shop/profile/${user?.id}` : "/profile"} icon={<User size={24} />} active={location.pathname === (isShopkeeper ? `/shop/profile/${user?.id}` : "/profile")} />
           </>
         )}
       </nav>

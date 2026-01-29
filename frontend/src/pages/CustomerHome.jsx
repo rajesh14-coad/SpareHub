@@ -18,15 +18,21 @@ import {
   ChevronRight,
   ChevronDown,
   Navigation,
-  Check
+  Check,
+  QrCode,
+  Eye
 } from 'lucide-react';
+import ScannerModal from '../components/ScannerModal';
 import { useNavigate } from 'react-router-dom';
 import Fuse from 'fuse.js';
 import { useAuth } from '../context/AuthContext';
 import { useSearch } from '../context/SearchContext';
 import toast from 'react-hot-toast';
 import GuestRestrictionModal from '../components/GuestRestrictionModal';
+import { formatCount } from '../utils/analytics';
+import { calculateDistance, formatDistance } from '../utils/location';
 import StatusPill from '../components/StatusPill';
+import LocationModal from '../components/LocationModal';
 
 const CustomerHome = () => {
   const navigate = useNavigate();
@@ -36,9 +42,10 @@ const CustomerHome = () => {
   const [view, setView] = useState('inventory'); // inventory or requests
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showScannerModal, setShowScannerModal] = useState(false);
   const [inventoryFilter, setInventoryFilter] = useState('All');
   const [location, setLocation] = useState(() => {
-    const saved = localStorage.getItem('sparehub-location');
+    const saved = localStorage.getItem('purzasetu-location');
     return saved ? JSON.parse(saved) : { state: '', district: '', area: '' };
   });
 
@@ -63,43 +70,57 @@ const CustomerHome = () => {
     setView(newView);
   };
 
-  const fuse = useMemo(() => new Fuse(products, {
+  const productFuse = useMemo(() => new Fuse(products, {
     keys: ['name', 'category', 'compat', 'description'],
     threshold: 0.35,
-    includeMatches: true
   }), [products]);
 
-  const filteredProducts = useMemo(() => {
-    const isMainShopVerified = users.find(u => u.email === 'shop@sparehub.com')?.status === 'Verified';
+  const shopFuse = useMemo(() => new Fuse(users.filter(u => u.role === 'shopkeeper'), {
+    keys: ['name', 'shopDetails.name', 'shopDetails.address'],
+    threshold: 0.35,
+  }), [users]);
 
-    let result = products;
+  const { coords } = useAuth();
+
+  const searchResults = useMemo(() => {
+    const isMainShopVerified = users.find(u => u.email === 'shop@purzasetu.com')?.status === 'Verified';
+    let filteredProducts = products;
 
     if (!isMainShopVerified) {
-      result = result.filter(item => item.id !== 2);
+      filteredProducts = filteredProducts.filter(item => item.id !== 2);
     }
 
-    // Apply inventory filter (condition-based)
     if (inventoryFilter !== 'All') {
       if (inventoryFilter === 'New') {
-        result = result.filter(item => item.type?.toLowerCase() === 'new');
+        filteredProducts = filteredProducts.filter(item => item.type?.toLowerCase() === 'new');
       } else if (inventoryFilter === 'Old') {
-        result = result.filter(item => item.type?.toLowerCase() === 'used' || item.type?.toLowerCase() === 'old');
+        filteredProducts = filteredProducts.filter(item => item.type?.toLowerCase() === 'used' || item.type?.toLowerCase() === 'old');
       } else if (inventoryFilter === 'Parts') {
-        result = result.filter(item => item.category === 'Spare Parts');
+        filteredProducts = filteredProducts.filter(item => item.category === 'Spare Parts');
       }
     }
 
     if (selectedCategory !== 'All') {
-      result = result.filter(item => item.category === selectedCategory);
+      filteredProducts = filteredProducts.filter(item => item.category === selectedCategory);
     }
+
+    let matchingProducts = filteredProducts;
+    let matchingShops = [];
 
     if (query) {
-      const searchResults = fuse.search(query);
-      result = searchResults.map(res => res.item);
+      const pFuse = new Fuse(filteredProducts, {
+        keys: ['name', 'category', 'compat', 'description'],
+        threshold: 0.35,
+      });
+      matchingProducts = pFuse.search(query).map(res => res.item);
+      matchingShops = shopFuse.search(query).map(res => res.item);
     }
 
-    return result;
-  }, [products, query, selectedCategory, inventoryFilter, fuse, users]);
+    return { products: matchingProducts, shops: matchingShops };
+  }, [products, query, selectedCategory, inventoryFilter, users, shopFuse]);
+
+  const filteredProducts = searchResults.products;
+  const filteredShops = searchResults.shops;
 
   return (
     <div className="pt-24 pb-32 px-4 md:px-8 max-w-7xl mx-auto min-h-screen">
@@ -107,29 +128,41 @@ const CustomerHome = () => {
       <div className="mb-10 flex justify-between items-start">
         <div className="text-left">
           <h1 className="text-4xl md:text-5xl font-bold text-text-primary tracking-tight mb-2">
-            {user?.name ? `Hello, ${user.name}` : 'SpareHub'}
+            {user?.name ? `Hello, ${user.name}` : 'PurzaSetu'}
           </h1>
           <p className="text-text-secondary text-sm font-medium opacity-60">Fine-quality parts for you</p>
         </div>
 
-        <button
-          onClick={() => setShowLocationModal(true)}
-          className="glass px-4 py-2 rounded-full border border-border-primary/50 flex items-center gap-2 text-xs font-bold text-text-primary hover:border-brand-primary/50 transition-all group"
-        >
-          <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-colors">
-            <MapPin size={12} />
-          </div>
-          <span className="max-w-[100px] truncate">{location.area || 'All India'}</span>
-          <ChevronDown size={12} className="text-text-secondary" />
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowScannerModal(true)}
+            className="glass w-10 h-10 rounded-full border border-border-primary/50 flex items-center justify-center text-text-primary hover:border-brand-primary/50 transition-all group shadow-lg"
+            title="Scan Shop QR"
+          >
+            <QrCode size={18} className="group-hover:text-brand-primary transition-colors" />
+          </button>
+
+          <button
+            onClick={() => setShowLocationModal(true)}
+            className="glass px-4 py-2 rounded-full border border-border-primary/50 flex items-center gap-2 text-xs font-bold text-text-primary hover:border-brand-primary/50 transition-all group shadow-lg"
+          >
+            <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-colors">
+              <MapPin size={12} />
+            </div>
+            <span className="max-w-[100px] truncate">{location.area || 'All India'}</span>
+            <ChevronDown size={12} className="text-text-secondary" />
+          </button>
+        </div>
       </div>
+
+      <ScannerModal isOpen={showScannerModal} onClose={() => setShowScannerModal(false)} />
 
       <LocationModal
         isOpen={showLocationModal}
         onClose={() => setShowLocationModal(false)}
         onSelect={(loc) => {
           setLocation(loc);
-          localStorage.setItem('sparehub-location', JSON.stringify(loc));
+          localStorage.setItem('purzasetu-location', JSON.stringify(loc));
           toast.success(`Location set to ${loc.area}`);
           setShowLocationModal(false);
         }}
@@ -186,9 +219,8 @@ const CustomerHome = () => {
               </div>
             </div>
 
-
             {/* Categories */}
-            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-6 mb-6">
+            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-6 mb-10">
               {categories.map((cat) => (
                 <motion.button
                   key={cat.id}
@@ -202,40 +234,139 @@ const CustomerHome = () => {
               ))}
             </div>
 
+            {/* Matching Shops Segment */}
+            {query && filteredShops.length > 0 && (
+              <div className="mb-12">
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="w-8 h-8 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
+                    <Zap size={16} />
+                  </span>
+                  <h3 className="text-sm font-black uppercase text-text-primary tracking-widest italic">Matching <span className="text-brand-primary">Shops</span></h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredShops.map((shop) => (
+                    <motion.div
+                      key={shop.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      whileHover={{ scale: 1.02, y: -4 }}
+                      onClick={() => navigate(`/shop/profile/${shop.id}`)}
+                      className="glass-card p-6 flex items-center justify-between cursor-pointer group glow-effect"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-brand-primary border border-white/10 group-hover:bg-brand-primary/20 transition-all">
+                          <Zap size={24} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-black text-base text-text-primary uppercase italic tracking-tight">{shop.name}</h4>
+                            <span className="px-1.5 py-0.5 bg-brand-primary/10 text-brand-primary text-[8px] font-black rounded uppercase tracking-tighter">SHOP</span>
+                          </div>
+                          <div className="flex items-center gap-3 opacity-60">
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-text-secondary">
+                              <MapPin size={10} /> {shop.city || 'Near You'}
+                            </div>
+                            <div className="text-[10px] font-black text-brand-primary uppercase">
+                              {formatDistance(calculateDistance(coords?.lat, coords?.lng, shop.lat, shop.lng))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight size={18} className="text-text-secondary group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
+                    </motion.div>
+                  ))}
+                </div>
+                <div className="h-px bg-border-primary/20 w-full mt-10" />
+              </div>
+            )}
+
             {/* Products Grid */}
+            <div className="flex items-center gap-3 mb-8">
+              <span className="w-8 h-8 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
+                <Package size={16} />
+              </span>
+              <h3 className="text-sm font-black uppercase text-text-primary tracking-widest italic">Matching <span className="text-brand-primary">Spares</span></h3>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ y: -4 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate(`/customer/product/${item.id}`)}
-                  className="glass-card p-4 transition-all group cursor-pointer relative flex flex-col glow-effect"
-                >
-                  <div className="aspect-[4/3] bg-bg-primary/50 rounded-2xl mb-4 overflow-hidden border border-border-primary/10">
-                    <img src={item.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={item.name} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${item.type === 'New' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-brand-primary/10 text-brand-primary'}`}>
-                        {item.type}
-                      </span>
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-text-secondary">
-                        <MapPin size={10} className="text-brand-primary" /> Near
+              {filteredProducts.map((item) => {
+                const shopId = item.id === 1 ? 2 : item.id === 2 ? 2 : 4; // Mock logic for owner
+                const shop = users.find(u => u.id === shopId);
+
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ y: -4 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate(`/customer/product/${item.id}`)}
+                    className="glass-card p-4 transition-all group cursor-pointer relative flex flex-col glow-effect"
+                  >
+                    <div className="aspect-[4/3] bg-bg-primary/50 rounded-2xl mb-4 overflow-hidden border border-border-primary/10 relative flex items-center justify-center">
+                      {item.image || (item.images && item.images[0]) ? (
+                        <img
+                          src={item.image || item.images[0]}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          alt={item.name}
+                          loading="lazy"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '<div class="text-text-secondary opacity-20"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>';
+                          }}
+                        />
+                      ) : (
+                        <div className="text-text-secondary opacity-20">
+                          <Package size={48} strokeWidth={1} />
+                        </div>
+                      )}
+                      <div className="absolute top-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded-lg text-[9px] font-black text-brand-primary uppercase tracking-widest border border-white/10">
+                        {formatDistance(calculateDistance(coords?.lat, coords?.lng, shop?.lat || item.lat, shop?.lng || item.lng))}
                       </div>
                     </div>
-                    <h3 className="font-bold text-text-primary text-base mb-1 line-clamp-1 group-hover:text-brand-primary transition-colors">{item.name}</h3>
-                    <p className="text-xs text-text-secondary line-clamp-2 mb-4 opacity-70 font-bold">{item.description}</p>
-                  </div>
-                  <div className="flex justify-between items-center pt-3 border-t border-border-primary/20">
-                    <span className="text-lg font-bold text-text-primary">₹{item.price.toLocaleString()}</span>
-                    <ChevronRight size={18} className="text-brand-primary group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </motion.div>
-              ))}
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${item.type === 'New' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-brand-primary/10 text-brand-primary'}`}>
+                          {item.type}
+                        </span>
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-text-secondary">
+                          <MapPin size={10} className="text-brand-primary" /> {shop?.city || 'Near'}
+                        </div>
+                      </div>
+                      <h3 className="font-bold text-text-primary text-base mb-1 line-clamp-1 group-hover:text-brand-primary transition-colors">{item.name}</h3>
+                      <p className="text-xs text-text-secondary line-clamp-2 mb-4 opacity-70 font-bold">{item.description}</p>
+                    </div>
+                    <div className="flex justify-between items-end pt-3 border-t border-border-primary/20">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5 mb-1 opacity-40">
+                          <Eye size={10} className="text-text-secondary" />
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-text-secondary">
+                            {formatCount(item.viewCount || 0)} views
+                          </span>
+                        </div>
+                        <span className="text-lg font-bold text-text-primary">₹{item.price.toLocaleString()}</span>
+                      </div>
+                      <ChevronRight size={18} className="text-brand-primary group-hover:translate-x-1 transition-transform mb-1" />
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
+
+            {filteredProducts.length === 0 && filteredShops.length === 0 && (
+              <div className="text-center py-20 bg-bg-primary/30 rounded-[32px] border border-dashed border-border-primary flex flex-col items-center">
+                <Search size={40} className="mb-4 text-text-secondary opacity-20" />
+                <h4 className="font-black text-lg text-text-primary uppercase italic mb-2">No Decryptions Found</h4>
+                <p className="text-text-secondary text-sm font-bold opacity-60 mb-8">We couldn't find any results for "{query}"</p>
+                <button
+                  onClick={() => setQuery('')}
+                  className="px-8 py-3 bg-brand-primary text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-brand-primary/20 glow-effect"
+                >
+                  Clear Search
+                </button>
+              </div>
+            )}
           </motion.div>
         ) : (
           <motion.div
@@ -305,121 +436,5 @@ const CustomerHome = () => {
     </div>
   );
 };
-
-const STATES_DATA = {
-  'Delhi': ['Central Delhi', 'East Delhi', 'New Delhi', 'North Delhi', 'South Delhi', 'West Delhi'],
-  'Maharashtra': ['Mumbai City', 'Mumbai Suburban', 'Pune', 'Nagpur', 'Nashik', 'Thane'],
-  'Karnataka': ['Bangalore Urban', 'Bangalore Rural', 'Mysore', 'Mangalore', 'Hubli'],
-  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem', 'Tiruchirappalli'],
-  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra', 'Varanasi', 'Noida'],
-  'Haryana': ['Gurgaon', 'Faridabad', 'Panipat', 'Ambala', 'Hissar']
-};
-
-const LocationModal = ({ isOpen, onClose, onSelect }) => {
-  const [selectedState, setSelectedState] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState('');
-
-  const handleUseCurrent = () => {
-    const toastId = toast.loading("Locating...");
-    setTimeout(() => {
-      const detected = { state: 'Delhi', district: 'New Delhi', area: 'Connaught Place' };
-      onSelect(detected);
-      toast.success("Location Detected", { id: toastId });
-    }, 1500);
-  };
-
-  const handleConfirm = () => {
-    if (selectedState && selectedDistrict) {
-      onSelect({ state: selectedState, district: selectedDistrict, area: selectedDistrict });
-    }
-  };
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-[150] p-4 bg-black/60 backdrop-blur-md">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-md glass-card p-0 overflow-hidden shadow-2xl"
-          >
-            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
-              <h3 className="font-bold text-text-primary text-xl tracking-tight">Select Location</h3>
-              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-text-secondary transition-all">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <button
-                onClick={handleUseCurrent}
-                className="w-full py-4 bg-brand-primary/10 border border-brand-primary/50 text-brand-primary rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand-primary/20 transition-all glow-effect"
-              >
-                <Navigation size={18} /> Use Current Location
-              </button>
-
-              <div className="flex items-center gap-4">
-                <div className="h-px flex-1 bg-white/10" />
-                <span className="text-[10px] font-black uppercase text-text-secondary opacity-50 tracking-widest">Or Select Manually</span>
-                <div className="h-px flex-1 bg-white/10" />
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest pl-1">State</label>
-                  <div className="relative">
-                    <select
-                      value={selectedState}
-                      onChange={(e) => { setSelectedState(e.target.value); setSelectedDistrict(''); }}
-                      className="w-full px-4 py-3 bg-bg-primary/50 border border-white/10 rounded-xl outline-none appearance-none text-sm font-semibold text-text-primary focus:border-brand-primary/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all"
-                    >
-                      <option value="">Select State</option>
-                      {Object.keys(STATES_DATA).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" size={16} />
-                  </div>
-                </div>
-
-                <AnimatePresence>
-                  {selectedState && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="space-y-2 overflow-hidden"
-                    >
-                      <label className="text-[10px] font-bold text-text-secondary uppercase tracking-widest pl-1">District / Area</label>
-                      <div className="relative">
-                        <select
-                          value={selectedDistrict}
-                          onChange={(e) => setSelectedDistrict(e.target.value)}
-                          className="w-full px-4 py-3 bg-bg-primary/50 border border-white/10 rounded-xl outline-none appearance-none text-sm font-semibold text-text-primary focus:border-brand-primary/50 focus:shadow-[0_0_15px_rgba(59,130,246,0.1)] transition-all"
-                        >
-                          <option value="">Select District</option>
-                          {STATES_DATA[selectedState].map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" size={16} />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <button
-                disabled={!selectedDistrict}
-                onClick={handleConfirm}
-                className="w-full py-4 bg-brand-primary text-white rounded-2xl font-bold text-sm shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              >
-                Confirm Location
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
-};
-
 
 export default CustomerHome;

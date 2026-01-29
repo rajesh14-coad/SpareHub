@@ -532,8 +532,24 @@ const AdminDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {products.map(product => (
                     <div key={product.id} className="bg-slate-950/50 border border-white/5 rounded-3xl overflow-hidden group">
-                      <div className="aspect-square relative overflow-hidden">
-                        <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={product.name} />
+                      <div className="aspect-square relative overflow-hidden flex items-center justify-center bg-slate-900">
+                        {(product.image || (product.images && product.images[0])) ? (
+                          <img
+                            src={product.image || product.images[0]}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            alt={product.name}
+                            loading="lazy"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div class="text-slate-700 opacity-20"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>';
+                            }}
+                          />
+                        ) : (
+                          <div className="text-slate-700 opacity-20">
+                            <Package size={48} strokeWidth={1} />
+                          </div>
+                        )}
                         <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <button onClick={() => deleteProduct(product.id)} className="p-4 bg-red-500 text-white rounded-full shadow-2xl shadow-red-900/50 hover:scale-110 transition-transform">
                             <Trash2 size={24} />

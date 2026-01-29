@@ -193,7 +193,7 @@ const ShopkeeperSignup = () => {
             Shopkeeper Registration
           </h1>
           <p className="text-text-secondary font-medium opacity-70">
-            Join SpareHub and start selling your products
+            Join PurzaSetu and start selling your products
           </p>
         </div>
 

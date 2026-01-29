@@ -18,41 +18,63 @@ import {
   Save,
   Loader2,
   ChevronDown,
-  Camera
+  Camera,
+  QrCode,
+  Download,
+  Share2,
+  Store,
+  Verified,
+  MapPin
 } from 'lucide-react';
+import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
+import html2canvas from 'html2canvas';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import StatusPill from '../components/StatusPill';
+import BusinessInsightsModal from '../components/BusinessInsightsModal';
+
+const purzaLogoP = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9IiM0ZjQ2ZTUiLz48dGV4dCB4PSI1MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSdBcmlhbCxzYW5zLXNlcmlmJyBmb250LXNpemU9IjY1IiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UDwvdGV4dD48L3N2Zz4=";
 
 const ShopDashboard = () => {
   const navigate = useNavigate();
   const { user, products: inventory, requests, notifications, deleteProduct, updateRequestStatus, updateProduct } = useAuth();
   const [activeTab, setActiveTab] = useState('requests');
   const [analyticsType, setAnalyticsType] = useState(null);
+  const [showInsights, setShowInsights] = useState(false);
 
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [editProduct, setEditProduct] = useState(null);
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
+    const toastId = toast.loading("Deleting from database...");
     try {
-      deleteProduct(id);
-      setDeleteConfirmId(null);
-      toast.success("Deleted");
+      const res = await deleteProduct(id);
+      if (res.success) {
+        setDeleteConfirmId(null);
+        toast.success("Permanently Deleted", { id: toastId });
+      } else {
+        toast.error("Deletion failed", { id: toastId });
+      }
     } catch (err) {
-      toast.error("Error");
+      toast.error("Critical System Error", { id: toastId });
     }
   };
 
-  const handleUpdate = (updatedProduct) => {
+  const handleUpdate = async (updatedProduct) => {
+    const toastId = toast.loading("Syncing updates...");
     try {
-      updateProduct(updatedProduct.id, updatedProduct);
-      setEditProduct(null);
-      toast.success("Updated");
+      const res = await updateProduct(updatedProduct.id, updatedProduct);
+      if (res.success) {
+        setEditProduct(null);
+        toast.success("Unit Record Updated", { id: toastId });
+      } else {
+        toast.error("Sync failed", { id: toastId });
+      }
     } catch (err) {
-      toast.error("Error");
+      toast.error("Critical System Error", { id: toastId });
     }
   };
 
@@ -80,6 +102,7 @@ const ShopDashboard = () => {
       <AnalyticsModal isOpen={!!analyticsType} onClose={() => setAnalyticsType(null)} type={analyticsType} data={chartData} />
       <DeleteModal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} onConfirm={() => handleDelete(deleteConfirmId)} productName={inventory.find(i => i.id === deleteConfirmId)?.name} />
       <EditModal isOpen={!!editProduct} onClose={() => setEditProduct(null)} onSave={handleUpdate} product={editProduct} />
+      <BusinessInsightsModal isOpen={showInsights} onClose={() => setShowInsights(false)} shopData={user} />
 
       <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
@@ -90,13 +113,22 @@ const ShopDashboard = () => {
             <Activity size={14} className="text-emerald-500" /> System live
           </p>
         </div>
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={() => navigate('/shop/upload')}
-          className="w-full md:w-auto px-8 py-3.5 bg-brand-primary text-white rounded-2xl shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2 font-bold text-sm glow-effect"
-        >
-          <Plus size={20} /> Post Item
-        </motion.button>
+        <div className="flex flex-wrap gap-4 w-full md:w-auto">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowInsights(true)}
+            className="flex-1 md:flex-none px-6 py-3.5 bg-white border border-border-primary text-brand-primary rounded-2xl font-bold text-xs hover:bg-brand-primary hover:text-white transition-all shadow-xl shadow-brand-primary/5 flex items-center justify-center gap-2 glow-effect"
+          >
+            <TrendingUp size={16} /> Business Insights
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/shop/upload')}
+            className="flex-1 md:flex-none px-6 py-3.5 bg-brand-primary text-white rounded-2xl font-bold text-xs shadow-xl shadow-brand-primary/20 flex items-center justify-center gap-2 glow-effect"
+          >
+            <Plus size={20} /> Post Item
+          </motion.button>
+        </div>
       </header>
 
       {/* Stats */}
@@ -127,13 +159,16 @@ const ShopDashboard = () => {
       <div className="flex gap-6 mb-8 border-b border-border-primary/20 overflow-x-auto no-scrollbar">
         <TabButton active={activeTab === 'requests'} onClick={() => setActiveTab('requests')} label="Requests" count={activeRequests.length} />
         <TabButton active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} label="Inventory" count={inventory.length} />
+        <TabButton active={activeTab === 'qr'} onClick={() => setActiveTab('qr')} label="Shop QR" />
       </div>
 
       <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         {activeTab === 'requests' ? (
           <RequestsView requests={activeRequests} onAccept={(id) => { updateRequestStatus(id, 'accepted'); toast.success("Accepted"); navigate('/chats'); }} onDecline={(id) => { updateRequestStatus(id, 'declined'); toast.error("Declined"); }} inventory={inventory} />
-        ) : (
+        ) : activeTab === 'inventory' ? (
           <InventoryView inventory={inventory} onEdit={setEditProduct} onDelete={setDeleteConfirmId} />
+        ) : (
+          <ShopQRView user={user} />
         )}
       </motion.div>
     </div>
@@ -325,8 +360,22 @@ const EditModal = ({ isOpen, onClose, onSave, product }) => {
 
             <div className="space-y-6">
               <div className="flex gap-4 items-center">
-                <div className="w-24 h-24 bg-bg-primary rounded-2xl overflow-hidden border border-border-primary/20 flex-shrink-0 relative group">
-                  <img src={formData.image} className="w-full h-full object-cover" alt="Preview" />
+                <div className="w-24 h-24 bg-bg-primary rounded-2xl overflow-hidden border border-border-primary/20 flex-shrink-0 relative group flex items-center justify-center">
+                  {formData.image || (formData.images && formData.images[0]) ? (
+                    <img
+                      src={formData.image || formData.images[0]}
+                      className="w-full h-full object-cover"
+                      alt="Preview"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '<div class="text-text-secondary opacity-20"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div>';
+                      }}
+                    />
+                  ) : (
+                    <Package size={32} strokeWidth={1} className="text-text-secondary opacity-20" />
+                  )}
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                     <Camera size={20} className="text-white" />
                   </div>
@@ -398,9 +447,9 @@ const AnalyticsModal = ({ isOpen, onClose, type, data }) => {
 
             <div className="bg-bg-primary/30 rounded-3xl p-6 border border-border-primary/20 mb-8">
               <h3 className="text-xs font-bold text-text-secondary mb-6 opacity-60">Performance</h3>
-              <div className="h-[250px] w-full">
+              <div className="h-[400px] w-full min-h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data}><defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={label.color} stopOpacity={0.2} /><stop offset="95%" stopColor={label.color} stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" /><XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }} /><YAxis hide /><Tooltip contentStyle={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '1rem', border: '1px solid var(--border-primary)', fontSize: '12px' }} /><Area type="monotone" dataKey={label.key} stroke={label.color} strokeWidth={4} fillOpacity={1} fill="url(#areaGrad)" /></AreaChart>
+                  <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}><defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={label.color} stopOpacity={0.2} /><stop offset="95%" stopColor={label.color} stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" /><XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 11, fontWeight: 600 }} /><YAxis hide /><Tooltip contentStyle={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '1rem', border: '1px solid var(--border-primary)', fontSize: '12px' }} /><Area type="monotone" dataKey={label.key} stroke={label.color} strokeWidth={4} fillOpacity={1} fill="url(#areaGrad)" /></AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -423,6 +472,408 @@ const AnalyticsModal = ({ isOpen, onClose, type, data }) => {
         </div>
       )}
     </AnimatePresence>
+  );
+};
+
+const ShopQRView = ({ user }) => {
+  const shopUrl = `${window.location.origin}/shop/${user?.id || 'demo'}`;
+  const posterRef = React.useRef(null);
+  const downloadRef = React.useRef(null); // Ensure this ref is defined
+  const qrRef = React.useRef(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [capturedQr, setCapturedQr] = useState(null);
+
+  const downloadQR = () => {
+    const canvas = document.getElementById('shop-qr-canvas');
+    if (!canvas) return;
+    const pngUrl = canvas.toDataURL('image/png').replace('image/png', 'image/octet-stream');
+    let downloadLink = document.createElement('a');
+    downloadLink.href = pngUrl;
+    downloadLink.download = `PurzaSetu_Shop_QR_${user?.shopDetails?.name || 'Shop'}.png`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    toast.success("QR Code downloaded!");
+  };
+
+  const downloadPoster = async () => {
+    if (!posterRef.current) return;
+    setIsGenerating(true);
+    const toastId = toast.loading("Generating High-Quality Poster...");
+
+    try {
+      // Wait for fonts and QR to fully render
+      await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const canvas = await html2canvas(posterRef.current, {
+        scale: 3,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        onclone: (clonedDoc) => {
+          const clonedPoster = clonedDoc.querySelector('[data-poster-container]');
+          if (clonedPoster) {
+            clonedPoster.style.transform = 'none';
+            clonedPoster.style.borderRadius = '1.5rem';
+
+            // Ensure QR canvas is visible
+            const qrCanvas = clonedPoster.querySelector('canvas');
+            if (qrCanvas) {
+              qrCanvas.style.display = 'block';
+              qrCanvas.style.opacity = '1';
+              qrCanvas.style.visibility = 'visible';
+            }
+          }
+        }
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = imgData;
+      link.download = `PurzaSetu_Official_Poster_${user?.shopDetails?.name || 'Shop'}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success("Official Poster Ready for Print!", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate poster", { id: toastId });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center max-w-4xl mx-auto py-10">
+      <div className="flex flex-col items-center w-full">
+        {/* Poster Preview (The portion that gets captured) */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="flex flex-col items-center w-full"
+        >
+          <div className="flex items-center justify-between w-full mb-8 max-w-[595px]">
+            <div>
+              <h2 className="text-2xl font-black text-text-primary italic uppercase tracking-tight mb-1">Official Poster</h2>
+              <p className="text-[10px] font-black text-text-secondary uppercase tracking-[0.3em] opacity-40 italic flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live HD Preview
+              </p>
+            </div>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={downloadPoster}
+              disabled={isGenerating}
+              className="flex items-center gap-3 px-6 py-3 bg-brand-primary text-white rounded-2xl font-black italic text-xs hover:scale-[1.05] transition-all shadow-xl shadow-brand-primary/20"
+            >
+              {isGenerating ? <Loader2 className="animate-spin" size={16} /> : <><Download size={16} /> DOWNLOAD POSTER (HD)</>}
+            </motion.button>
+          </div>
+
+          <div className="scale-[0.6] md:scale-[0.75] origin-top">
+            {/* THIS IS THE POSTER CONTAINER */}
+            <div
+              ref={posterRef}
+              data-poster-container="true"
+              style={{
+                width: '894px',
+                height: '1264px',
+                backgroundColor: '#ffffff',
+                color: '#000000',
+                padding: '4.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                border: '18px solid rgba(79, 70, 229, 0.1)',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                position: 'relative',
+                margin: '0 auto',
+                borderRadius: '2rem',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Top Branding */}
+              <div style={{ textAlign: 'center', marginTop: '4rem', marginBottom: '4rem', flex: 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div
+                    style={{
+                      width: '4rem',
+                      height: '4rem',
+                      backgroundColor: '#4f46e5',
+                      borderRadius: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                    }}
+                  >
+                    <Store style={{ color: '#ffffff' }} size={32} />
+                  </div>
+                  <h1
+                    style={{
+                      fontSize: '3.5rem',
+                      fontWeight: '900',
+                      fontStyle: 'italic',
+                      lineHeight: '1',
+                      letterSpacing: '-0.05em',
+                      margin: '0',
+                      color: '#4f46e5'
+                    }}
+                  >
+                    PurzaSetu
+                  </h1>
+                </div>
+                <p style={{ fontSize: '0.875rem', fontWeight: '700', letterSpacing: '0.4em', textTransform: 'uppercase', color: '#94a3b8', margin: '0' }}>Connect to Spares</p>
+              </div>
+
+              {/* Center QR */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '3rem', flex: 'none' }}>
+                <div
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    padding: '2.5rem',
+                    borderRadius: '4rem',
+                    border: '2px solid #f1f5f9',
+                    marginBottom: '2rem',
+                    boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
+                  }}
+                >
+                  <div ref={qrRef}>
+                    <QRCodeCanvas
+                      id="shop-qr-canvas"
+                      value={shopUrl}
+                      size={320}
+                      level={"H"}
+                      includeMargin={false}
+                      imageSettings={{
+                        src: purzaLogoP,
+                        height: 60,
+                        width: 60,
+                        excavate: true,
+                      }}
+                    />
+                  </div>
+                </div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#4f46e5', margin: '0 0 0.5rem 0' }}>Scan To Browse Catalog</h3>
+                <div style={{ height: '2px', width: '5rem', backgroundColor: 'rgba(79, 70, 229, 0.2)', borderRadius: '9999px' }} />
+              </div>
+
+              <div style={{ width: '100%', textAlign: 'center', marginTop: 'auto', marginBottom: '2rem', flex: 'none' }}>
+                <h2 style={{ fontSize: '2.75rem', fontStyle: 'italic', fontWeight: '950', textTransform: 'uppercase', letterSpacing: '-0.025em', color: '#0f172a', marginBottom: '1.5rem', marginTop: '0' }}>
+                  {user?.shopDetails?.name || user?.name || "Premium Shop"}
+                </h2>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      backgroundColor: '#ecfdf5',
+                      color: '#059669',
+                      padding: '0.75rem 1.5rem',
+                      borderRadius: '1rem',
+                      border: '1px solid #d1fae5',
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                    }}
+                  >
+                    <Verified size={20} />
+                    <span style={{ fontSize: '0.875rem', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Verified on PurzaSetu</span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      backgroundColor: '#f8fafc',
+                      color: '#64748b',
+                      padding: '0.75rem 1.5rem',
+                      borderRadius: '1rem',
+                      border: '1px solid #f1f5f9'
+                    }}
+                  >
+                    <MapPin size={18} />
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>Active Partner</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="mt-12 text-center text-text-secondary">
+        <p className="text-xs font-bold opacity-40 uppercase tracking-widest max-w-[400px] leading-relaxed mx-auto">
+          Tip: Print this poster in A4 size and place it near your shop entrance. High-quality QR scanning increases customer engagement by up to 40%.
+        </p>
+      </div>
+
+      {/* DEDICATED DOWNLOAD-ONLY COMPONENT (Off-screen/Hidden) */}
+      <div
+        ref={downloadRef}
+        data-download-poster="true"
+        style={{
+          position: 'fixed',
+          top: '0',
+          left: '0',
+          width: '800px',
+          height: '1100px',
+          backgroundColor: '#ffffff',
+          color: '#000000',
+          fontFamily: 'Arial, sans-serif',
+          zIndex: '-100',
+          opacity: 0,
+          pointerEvents: 'none',
+          display: 'block' // Keep block but hidden to ensure browser renders it
+        }}
+      >
+        {/* Outer Border */}
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          right: '20px',
+          bottom: '20px',
+          border: '18px solid rgba(79, 70, 229, 0.08)',
+          borderRadius: '40px'
+        }} />
+
+        {/* Top Branding Section */}
+        <div style={{
+          position: 'absolute',
+          top: '80px',
+          width: '100%',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            backgroundColor: '#4f46e5',
+            borderRadius: '20px',
+            margin: '0 auto 20px auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <Store style={{ color: '#ffffff' }} size={45} />
+          </div>
+          <h1 style={{
+            fontSize: '65px',
+            fontWeight: '950',
+            fontStyle: 'italic',
+            color: '#4f46e5',
+            margin: '0',
+            padding: '0',
+            letterSpacing: '-2px'
+          }}>PurzaSetu</h1>
+          <p style={{
+            fontSize: '14px',
+            fontWeight: '800',
+            letterSpacing: '8px',
+            textTransform: 'uppercase',
+            color: '#94a3b8',
+            marginTop: '5px'
+          }}>Connect to Spares</p>
+        </div>
+
+        {/* Center QR Section */}
+        <div style={{
+          position: 'absolute',
+          top: '360px',
+          left: '0',
+          right: '0',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            display: 'inline-block',
+            backgroundColor: '#f8fafc',
+            padding: '45px',
+            borderRadius: '60px',
+            border: '2px solid #f1f5f9'
+          }}>
+            <QRCodeCanvas
+              value={shopUrl}
+              size={350}
+              level={"H"}
+              includeMargin={false}
+              imageSettings={{
+                src: purzaLogoP,
+                height: 70,
+                width: 70,
+                excavate: true,
+              }}
+            />
+          </div>
+          <div style={{ marginTop: '35px' }}>
+            <h3 style={{
+              fontSize: '22px',
+              fontWeight: '900',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+              color: '#4f46e5',
+              margin: '0'
+            }}>Scan To Browse Catalog</h3>
+            <div style={{
+              width: '80px',
+              height: '3px',
+              backgroundColor: 'rgba(79, 70, 229, 0.2)',
+              margin: '15px auto 0 auto'
+            }} />
+          </div>
+        </div>
+
+        {/* Bottom Shop Info */}
+        <div style={{
+          position: 'absolute',
+          bottom: '100px',
+          width: '100%',
+          textAlign: 'center'
+        }}>
+          <h2 style={{
+            fontSize: '52px',
+            fontWeight: '950',
+            fontStyle: 'italic',
+            textTransform: 'uppercase',
+            color: '#0f172a',
+            margin: '0 40px 30px 40px',
+            lineHeight: '1.1'
+          }}>
+            {user?.shopDetails?.name || user?.name || "Premium Shop"}
+          </h2>
+
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              backgroundColor: '#ecfdf5',
+              color: '#059669',
+              padding: '15px 35px',
+              borderRadius: '20px',
+              border: '1px solid #d1fae5',
+              marginRight: '20px'
+            }}>
+              <Verified size={24} style={{ marginRight: '10px' }} />
+              <span style={{ fontSize: '16px', fontWeight: '900', textTransform: 'uppercase' }}>Verified Partner</span>
+            </div>
+
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              backgroundColor: '#f8fafc',
+              color: '#64748b',
+              padding: '15px 35px',
+              borderRadius: '20px',
+              border: '1px solid #f1f5f9'
+            }}>
+              <MapPin size={22} style={{ marginRight: '10px' }} />
+              <span style={{ fontSize: '16px', fontWeight: '800', textTransform: 'uppercase' }}>Active Store</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

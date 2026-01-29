@@ -1,15 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff, CheckCircle, Loader2, Shield } from 'lucide-react';
+import { X, ArrowLeft, User, Mail, Phone, Lock, Eye, EyeOff, CheckCircle, Loader2, Shield, Moon, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 const SettingsModal = ({ isOpen, onClose }) => {
   const { user, updateProfile } = useAuth();
+  const { currentTheme, setCurrentTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Advanced Preferences
+  const [pushAlertsEnabled, setPushAlertsEnabled] = useState(() => {
+    return localStorage.getItem('purzasetu-push-alerts') !== 'false';
+  });
+
+  const isDarkMode = currentTheme === 'dark' || currentTheme === 'onyx' || currentTheme === 'midnight-gold';
 
   const [formData, setFormData] = useState({
     name: '',
@@ -105,6 +114,19 @@ const SettingsModal = ({ isOpen, onClose }) => {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+  };
+
+  const handleDarkModeToggle = () => {
+    const newTheme = isDarkMode ? 'light' : 'dark';
+    setCurrentTheme(newTheme);
+    toast.success(`${isDarkMode ? 'Light' : 'Dark'} mode enabled`);
+  };
+
+  const handlePushAlertsToggle = () => {
+    const newValue = !pushAlertsEnabled;
+    setPushAlertsEnabled(newValue);
+    localStorage.setItem('purzasetu-push-alerts', newValue.toString());
+    toast.success(`Push alerts ${newValue ? 'enabled' : 'disabled'}`);
   };
 
   return (
@@ -296,6 +318,60 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   </button>
                 </div>
                 {errors.confirmPassword && <p className="text-xs font-medium text-red-500">{errors.confirmPassword}</p>}
+              </div>
+            </div>
+
+            {/* Advanced Preferences Section */}
+            <div className="pt-8 border-t border-border-primary/20 space-y-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Shield size={18} className="text-brand-primary" />
+                <h3 className="text-sm font-bold text-text-primary uppercase tracking-widest">Advanced Preferences</h3>
+              </div>
+
+              {/* Dark Mode Toggle */}
+              <div className="flex items-center justify-between p-4 bg-bg-primary/30 rounded-xl border border-border-primary/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-brand-primary/10 text-brand-primary rounded-lg flex items-center justify-center">
+                    <Moon size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-text-primary">Dark Mode</h4>
+                    <p className="text-xs text-text-secondary opacity-60">Toggle dark theme</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleDarkModeToggle}
+                  className={`relative w-14 h-7 rounded-full transition-all ${isDarkMode ? 'bg-brand-primary' : 'bg-border-primary'}`}
+                >
+                  <motion.div
+                    animate={{ x: isDarkMode ? 28 : 2 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-md"
+                  />
+                </button>
+              </div>
+
+              {/* Push Alerts Toggle */}
+              <div className="flex items-center justify-between p-4 bg-bg-primary/30 rounded-xl border border-border-primary/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-500/10 text-emerald-500 rounded-lg flex items-center justify-center">
+                    <Bell size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-text-primary">Push Alerts</h4>
+                    <p className="text-xs text-text-secondary opacity-60">Enable notifications</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handlePushAlertsToggle}
+                  className={`relative w-14 h-7 rounded-full transition-all ${pushAlertsEnabled ? 'bg-emerald-500' : 'bg-border-primary'}`}
+                >
+                  <motion.div
+                    animate={{ x: pushAlertsEnabled ? 28 : 2 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-md"
+                  />
+                </button>
               </div>
             </div>
 

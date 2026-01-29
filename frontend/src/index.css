@@ -105,24 +105,22 @@
   .glow-effect {
     position: relative;
     transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.2); 
   }
 
-  .glow-effect:focus-within,
+  .glow-effect:hover {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4), 0 0 5px rgba(168, 85, 247, 0.4);
+    animation: pulse-glow 2s infinite;
+  }
+
   .glow-effect:active {
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1),
-      0 0 15px rgba(99, 102, 241, 0.05);
+    transform: scale(0.98);
   }
 
-  .glow-effect:active::after {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    background: linear-gradient(45deg, #6366f1, #a855f7, #06b6d4);
-    filter: blur(2px);
-    opacity: 0.3;
-    z-index: -1;
-    border-radius: inherit;
-    animation: glow-pulse 0.4s ease-out forwards;
+  @keyframes pulse-glow {
+    0% { box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
+    50% { box-shadow: 0 0 25px rgba(99, 102, 241, 0.6), 0 0 10px rgba(6, 182, 212, 0.4); }
+    100% { box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
   }
 
   /* Pulse on Hover Effect */

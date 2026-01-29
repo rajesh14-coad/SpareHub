@@ -42,7 +42,7 @@ const Login = () => {
   };
 
   const handleAdminSuccess = () => {
-    login('admin@sparehub.com', 'admin', 'Admin');
+    login('admin@purzasetu.com', 'admin', 'Admin');
     navigate('/');
     toast.success("Welcome back, Overseer");
   };
@@ -73,7 +73,7 @@ const Login = () => {
             {role === 'Shopkeeper' ? 'Authorized Access' : 'Secure Entry'}
           </h2>
           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-            {role === 'Shopkeeper' ? 'Partner Portal' : 'Welcome to SpareHub'}
+            {role === 'Shopkeeper' ? 'Partner Portal' : 'Welcome to PurzaSetu'}
           </h1>
         </div>
 

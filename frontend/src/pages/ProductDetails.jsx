@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -25,10 +25,17 @@ import GuestRestrictionModal from '../components/GuestRestrictionModal';
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { products, user, isGuest, addRequest, isShopkeeper, reportProduct } = useAuth();
+  const { products, user, isGuest, addRequest, isShopkeeper, reportProduct, trackProductView } = useAuth();
   const [activeImage, setActiveImage] = useState(0);
   const [isRequesting, setIsRequesting] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
+
+  // Track product view
+  useEffect(() => {
+    if (id) {
+      trackProductView(Number(id));
+    }
+  }, [id, trackProductView]);
 
   // Find product from global state
   const product = products.find(p => p.id === Number(id)) || products[0];
@@ -93,6 +100,11 @@ const ProductDetails = () => {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://via.placeholder.com/600x600?text=Product+Image+Not+Found';
+                }}
               />
             </AnimatePresence>
 

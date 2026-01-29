@@ -4,67 +4,110 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('sparehub-user');
+    const saved = localStorage.getItem('purzasetu-user');
     return saved ? JSON.parse(saved) : null;
   });
   const [isGuest, setIsGuest] = useState(() => {
-    return localStorage.getItem('sparehub-guest') === 'true';
+    return localStorage.getItem('purzasetu-guest') === 'true';
   });
   const [coords, setCoords] = useState(null);
 
   // Global Mock Database
-  const [products, setProducts] = useState([
-    { id: 1, name: 'Toyota Innova Headlight', category: 'Spare Parts', type: 'New', price: 4500, compat: 'Innova 2018+', lat: 28.6139, lng: 77.2090, stock: 5, image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=2070&auto=format&fit=crop' },
-    { id: 2, name: 'Honda City Front Bumper', category: 'Spare Parts', type: 'Used', price: 2800, compat: 'City 2014-2016', lat: 28.6500, lng: 77.2500, stock: 1, image: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=2070&auto=format&fit=crop' },
-    { id: 3, name: 'iPhone 13 Pro Screen', category: 'Mobile', type: 'New', price: 12000, compat: 'iPhone 13 Pro', lat: 28.4595, lng: 77.0266, stock: 8, image: 'https://images.unsplash.com/photo-1632733711679-5292d6863600?q=80&w=2070&auto=format&fit=crop' },
-  ]);
+  const [products, setProducts] = useState(() => {
+    const saved = localStorage.getItem('purzasetu-products');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: 'Toyota Innova Headlight', category: 'Spare Parts', type: 'New', price: 4500, compat: 'Innova 2018+', lat: 28.6139, lng: 77.2090, stock: 5, image: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=2070&auto=format&fit=crop', viewCount: 1247, viewHistory: [] },
+      { id: 2, name: 'Honda City Front Bumper', category: 'Spare Parts', type: 'Used', price: 2800, compat: 'City 2014-2016', lat: 28.6500, lng: 77.2500, stock: 1, image: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=2070&auto=format&fit=crop', viewCount: 856, viewHistory: [] },
+      { id: 3, name: 'iPhone 13 Pro Screen', category: 'Mobile', type: 'New', price: 12000, compat: 'iPhone 13 Pro', lat: 28.4595, lng: 77.0266, stock: 8, image: 'https://images.unsplash.com/photo-1632733711679-5292d6863600?q=80&w=2070&auto=format&fit=crop', viewCount: 2341, viewHistory: [] },
+    ];
+  });
 
-  const [requests, setRequests] = useState([
-    { id: 1, customerName: 'Rahul Sharma', productName: 'Mahindra Thar Front Grille', time: '14m ago', status: 'pending', amount: 4200, productId: 1 },
-  ]);
+  const [requests, setRequests] = useState(() => {
+    const saved = localStorage.getItem('purzasetu-requests');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, customerName: 'Rahul Sharma', productName: 'Mahindra Thar Front Grille', time: '14m ago', status: 'pending', amount: 4200, productId: 1 },
+    ];
+  });
 
-  const [completedOrders, setCompletedOrders] = useState([]);
-  const [ratings, setRatings] = useState([]);
+  const [completedOrders, setCompletedOrders] = useState(() => {
+    const saved = localStorage.getItem('purzasetu-completed-orders');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: 'New Request for Toyota Headlight', time: '2m ago', type: 'request', read: false },
-    { id: 2, text: 'Signal received from Mahindra Thar inquiry', time: '15m ago', type: 'signal', read: true },
-    { id: 3, text: 'Price update: Innova Headlight is trending', time: '1h ago', type: 'system', read: false },
-  ]);
+  const [ratings, setRatings] = useState(() => {
+    const saved = localStorage.getItem('purzasetu-ratings');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [notifications, setNotifications] = useState(() => {
+    const saved = localStorage.getItem('purzasetu-notifications');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, text: 'New Request for Toyota Headlight', time: '2m ago', type: 'request', read: false },
+      { id: 2, text: 'Signal received from Mahindra Thar inquiry', time: '15m ago', type: 'signal', read: true },
+      { id: 3, text: 'Price update: Innova Headlight is trending', time: '1h ago', type: 'system', read: false },
+    ];
+  });
 
   const [users, setUsers] = useState(() => {
-    const saved = localStorage.getItem('sparehub-all-users');
+    const saved = localStorage.getItem('purzasetu-all-users');
     return saved ? JSON.parse(saved) : [
       { id: 1, name: 'Rahul Sharma', email: 'rahul@example.com', role: 'Customer', status: 'Active', joined: '2025-01-10' },
-      { id: 2, name: 'AutoParts Syndicate', email: 'shop@sparehub.com', role: 'shopkeeper', status: 'Verified', isVerified: true, joined: '2025-01-05' },
+      { id: 2, name: 'AutoParts Syndicate', email: 'shop@purzasetu.com', role: 'shopkeeper', status: 'Verified', isVerified: true, joined: '2025-01-05', lat: 28.6139, lng: 77.2090, shopVisits: 2840, visitHistory: Array.from({ length: 30 }, (_, i) => Date.now() - (i * 86400000)).flatMap(t => Array.from({ length: Math.floor(Math.random() * 50) + 10 }, () => t)) },
       { id: 3, name: 'Priya Verma', email: 'priya@example.com', role: 'Customer', status: 'Active', joined: '2025-01-15' },
-      { id: 4, name: 'Tech Solutions', email: 'tech@shop.com', role: 'shopkeeper', status: 'Pending', isVerified: false, joined: '2025-01-20' },
-      { id: 5, name: 'Admin Master', email: 'admin@sparehub.com', role: 'Admin', status: 'Active', joined: '2024-12-01' },
+      { id: 4, name: 'Tech Solutions', email: 'tech@shop.com', role: 'shopkeeper', status: 'Pending', isVerified: false, joined: '2025-01-20', lat: 28.4595, lng: 77.0266, shopVisits: 156, visitHistory: [] },
+      { id: 5, name: 'Admin Master', email: 'admin@purzasetu.com', role: 'Admin', status: 'Active', joined: '2024-12-01' },
     ];
   });
 
   const [pendingShopkeepers, setPendingShopkeepers] = useState(() => {
-    const saved = localStorage.getItem('sparehub-pending-shopkeepers');
+    const saved = localStorage.getItem('purzasetu-pending-shopkeepers');
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [reports, setReports] = useState([
-    { id: 1, productId: 1, productName: 'Toyota Innova Headlight', reason: 'Incorrect Price', reporter: 'Alex Murphy', time: '1h ago' },
-  ]);
+  const [reports, setReports] = useState(() => {
+    const saved = localStorage.getItem('purzasetu-reports');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, productId: 1, productName: 'Toyota Innova Headlight', reason: 'Incorrect Price', reporter: 'Alex Murphy', time: '1h ago' },
+    ];
+  });
 
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(() => {
-    const saved = localStorage.getItem('sparehub-registration-open');
+    const saved = localStorage.getItem('purzasetu-registration-open');
     return saved ? saved === 'true' : true;
   });
 
-  // Persistence for users and requests
+  // Persistence for database consistency
   useEffect(() => {
-    localStorage.setItem('sparehub-all-users', JSON.stringify(users));
+    localStorage.setItem('purzasetu-all-users', JSON.stringify(users));
   }, [users]);
 
   useEffect(() => {
-    localStorage.setItem('sparehub-pending-shopkeepers', JSON.stringify(pendingShopkeepers));
+    localStorage.setItem('purzasetu-products', JSON.stringify(products));
+  }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem('purzasetu-requests', JSON.stringify(requests));
+  }, [requests]);
+
+  useEffect(() => {
+    localStorage.setItem('purzasetu-completed-orders', JSON.stringify(completedOrders));
+  }, [completedOrders]);
+
+  useEffect(() => {
+    localStorage.setItem('purzasetu-ratings', JSON.stringify(ratings));
+  }, [ratings]);
+
+  useEffect(() => {
+    localStorage.setItem('purzasetu-notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  useEffect(() => {
+    localStorage.setItem('purzasetu-reports', JSON.stringify(reports));
+  }, [reports]);
+
+  useEffect(() => {
+    localStorage.setItem('purzasetu-pending-shopkeepers', JSON.stringify(pendingShopkeepers));
   }, [pendingShopkeepers]);
 
   // Generate 4-digit booking code
@@ -73,23 +116,28 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    if (user) localStorage.setItem('sparehub-user', JSON.stringify(user));
-    else localStorage.removeItem('sparehub-user');
+    if (user) localStorage.setItem('purzasetu-user', JSON.stringify(user));
+    else localStorage.removeItem('purzasetu-user');
   }, [user]);
 
   useEffect(() => {
-    localStorage.setItem('sparehub-guest', isGuest);
+    localStorage.setItem('purzasetu-guest', isGuest);
   }, [isGuest]);
 
   useEffect(() => {
-    localStorage.setItem('sparehub-registration-open', isRegistrationOpen);
+    localStorage.setItem('purzasetu-registration-open', isRegistrationOpen);
   }, [isRegistrationOpen]);
 
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        (err) => console.log('Location access denied')
+        (err) => {
+          console.warn('Geolocation access denied or failed. Using default coords.');
+          // Use a default coordinate for demo purposes if denied
+          setCoords({ lat: 28.6139, lng: 77.2090 });
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     }
   }, []);
@@ -99,7 +147,7 @@ export const AuthProvider = ({ children }) => {
     const foundUser = users.find(u => u.email === email && u.isVerified) || users.find(u => u.email === email);
 
     // Admin override for demo
-    if (email === 'admin@sparehub.com') {
+    if (email === 'admin@purzasetu.com') {
       setUser({ name: 'Admin Hub', email, role: 'Admin', avatar: null, location: 'Central Server' });
       setIsGuest(false);
       return { success: true };
@@ -205,12 +253,26 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     setIsGuest(false);
-    localStorage.removeItem('sparehub-user');
-    localStorage.removeItem('sparehub-guest');
+    localStorage.removeItem('purzasetu-user');
+    localStorage.removeItem('purzasetu-guest');
   };
 
-  const updateProfile = (updates) => {
-    setUser(prev => ({ ...prev, ...updates }));
+  const updateProfile = async (updates) => {
+    try {
+      // Simulate Database Latency
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const updatedUser = { ...user, ...updates };
+
+      // Critical: Update both Current User AND the entry in the Global Registry
+      setUser(updatedUser);
+      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+
+      return { success: true };
+    } catch (err) {
+      console.error("Profile Update failed:", err);
+      return { success: false };
+    }
   };
 
   const addNotification = (text, type = 'system') => {
@@ -289,17 +351,26 @@ export const AuthProvider = ({ children }) => {
     return [];
   };
 
-  const deleteProduct = (id) => {
+  const deleteProduct = async (id) => {
+    // Simulate DB deletion
+    await new Promise(resolve => setTimeout(resolve, 500));
     setProducts(prev => prev.filter(p => p.id !== id));
     setReports(prev => prev.filter(r => r.productId !== id));
+    return { success: true };
   };
 
-  const addProduct = (product) => {
+  const addProduct = async (product) => {
+    // Simulate DB insertion
+    await new Promise(resolve => setTimeout(resolve, 1000));
     setProducts(prev => [product, ...prev]);
+    return { success: true };
   };
 
-  const updateProduct = (id, updates) => {
+  const updateProduct = async (id, updates) => {
+    // Simulate DB update
+    await new Promise(resolve => setTimeout(resolve, 600));
     setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    return { success: true };
   };
 
   // Admin Specific Actions
@@ -412,8 +483,51 @@ export const AuthProvider = ({ children }) => {
     }, ...prev]);
   };
 
-  const isShopkeeper = user?.email === 'shop@sparehub.com' || user?.role === 'shopkeeper';
-  const isAdmin = user?.email === 'admin@sparehub.com' || user?.role === 'Admin';
+  // Analytics Tracking Functions
+  const trackProductView = (productId) => {
+    // Check if this is a unique view for this session
+    const sessionKey = `viewed_product_${productId}`;
+    const hasViewed = sessionStorage.getItem(sessionKey);
+
+    if (!hasViewed) {
+      sessionStorage.setItem(sessionKey, Date.now().toString());
+
+      setProducts(prev => prev.map(p => {
+        if (p.id === productId) {
+          return {
+            ...p,
+            viewCount: (p.viewCount || 0) + 1,
+            viewHistory: [...(p.viewHistory || []), Date.now()]
+          };
+        }
+        return p;
+      }));
+    }
+  };
+
+  const trackShopVisit = (shopId) => {
+    // Check if this is a unique visit for this session
+    const sessionKey = `visited_shop_${shopId}`;
+    const hasVisited = sessionStorage.getItem(sessionKey);
+
+    if (!hasVisited) {
+      sessionStorage.setItem(sessionKey, Date.now().toString());
+
+      setUsers(prev => prev.map(u => {
+        if (u.id === shopId && u.role === 'shopkeeper') {
+          return {
+            ...u,
+            shopVisits: (u.shopVisits || 0) + 1,
+            visitHistory: [...(u.visitHistory || []), Date.now()]
+          };
+        }
+        return u;
+      }));
+    }
+  };
+
+  const isShopkeeper = user?.email === 'shop@purzasetu.com' || user?.role === 'shopkeeper';
+  const isAdmin = user?.email === 'admin@purzasetu.com' || user?.role === 'Admin';
 
   // Helper to check if a product belongs to a verified shopkeeper
   const getProductVisibility = (productId) => {
@@ -429,7 +543,7 @@ export const AuthProvider = ({ children }) => {
       addRequest, updateRequestStatus, deleteProduct, addProduct, updateProduct,
       addNotification, markNotificationsAsRead, verifyShopkeeper, banUser, unbanUser, deleteUser, broadcastNotification, reportProduct,
       verifyBookingCode, completeOrder, addRating, getOrderHistory, submitShopkeeperRequest, approveShopkeeper, rejectShopkeeper,
-      isRegistrationOpen, toggleRegistration
+      isRegistrationOpen, toggleRegistration, trackProductView, trackShopVisit
     }}>
       {children}
     </AuthContext.Provider>
